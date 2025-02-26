@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RepositoryType>git</RepositoryType>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Authors>Liblouis contributors.</Authors>
+    <Company>Liblouis</Company>
+    <Title>$(AssemblyName)</Title>
+    <Version>3.32.0</Version>
+    <Copyright>Liblouis 2010 - 2024</Copyright>
+    <Description>
+      Packaged by Nota.
+    </Description>
+    <PackageProjectUrl>https://liblouis.io/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/liblouis/liblouis</RepositoryUrl>
+    <PackageTags>liblouis, braille</PackageTags>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="LICENSE">
+      <PackagePath>\</PackagePath>
+      <Pack>True</Pack>
+    </None>
+    <Content Include="tables/*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+    </Content>
+  </ItemGroup>
+
+</Project>
