@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RepositoryType>git</RepositoryType>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Authors>Liblouis contributors.</Authors>
+    <Company>Liblouis</Company>
+    <Title>$(AssemblyName)</Title>
+    <Version>3.32.0</Version>
+    <Copyright>Liblouis 2010 - 2024</Copyright>
+    <Description>Note: Do not reference this package directly!
+
+The Liblouis software suite provides an open-source braille translator, back-translator and formatter for a large number of languages and braille codes. It is a set of libraries designed for use in any of a number of applications, both free and commercial. It is written in C so that it does not require a runtime environment and hence can be used in applications written in high-level languages such as Java and Python. Packaged by Nota.</Description>
+    <PackageProjectUrl>https://liblouis.io/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/liblouis/liblouis</RepositoryUrl>
+    <PackageTags>liblouis, braille</PackageTags>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="runtimes/win-x86/native/liblouis.dll" PackagePath="runtimes/win-x86/native/liblouis.dll" Pack="true">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes/win-x64/native/liblouis.dll" PackagePath="runtimes/win-x64/native/liblouis.dll" Pack="true">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes/linux-x64/native/liblouis.so" PackagePath="runtimes/linux-x64/native/liblouis.so" Pack="true">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes/osx-arm64/native/liblouis.dylib" PackagePath="runtimes/osx-arm64/native/liblouis.dylib" Pack="true">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+
+    <None Update="LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    
+  </ItemGroup>
+  
+</Project>
