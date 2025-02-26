@@ -1,0 +1,101 @@
+﻿using System;
+using System.IO;
+using System.Linq;
+
+using Xunit;
+
+namespace LibLouis.NET.Test;
+
+public class NativeMethodsTests
+{
+    [Fact]
+    public void SingleMode()
+    {
+        string cwd = Directory.GetCurrentDirectory();
+
+        string[] tables = ["da-dk-braillo.dis", "da-dk-g16-markers.ctb"];
+
+        string input = "This is a test.";
+
+        int outputLength = input.Length * 2;
+
+        TypeForm[] modes = new TypeForm[input.Length];
+        Array.Fill(modes, TypeForm.ForeignLanguage);
+
+        string resultString = LibLouis.Instance.Translate(
+            tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t)),
+            input,
+            outputLength,
+            modes,
+            null,
+            TranslationMode.Regular);
+
+        Assert.Equal("`,@this is a test.`,", resultString);
+    }
+
+    [Fact]
+    public void NestedMode_EmphasisInForeignLanguage()
+    {
+        string[] tables = ["da-dk-braillo.dis", "da-dk-g16-markers.ctb"];
+
+        string input = "This is a test.";
+        int inputLength = input.Length;
+        int outputLength = inputLength * 2;
+
+        TypeForm[] modes = new TypeForm[inputLength];
+        Array.Fill(modes, TypeForm.ForeignLanguage);
+        modes[5] = TypeForm.ForeignLanguage | TypeForm.Emphasis;
+        modes[6] = TypeForm.ForeignLanguage | TypeForm.Emphasis;
+
+        string resultString = LibLouis.Instance.Translate(
+            tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t)),
+            input,
+            outputLength,
+            modes,
+            null,
+            TranslationMode.Regular);
+
+        Assert.Equal("`,@this \\is\\ a test.`,", resultString);
+    }
+
+    [Fact]
+    public void NestedMode_ForeignLanguageInEmphasis()
+    {
+        string[] tables = ["da-dk-braillo.dis", "da-dk-g16-markers.ctb"];
+
+        string input = "Han sagde yes.";
+
+        int inputLength = input.Length;
+        int outputLength = inputLength * 2;
+
+        TypeForm[] modes =
+        [
+            TypeForm.Italic,
+            TypeForm.Italic,
+            TypeForm.Italic,
+            TypeForm.Italic,
+            TypeForm.Italic,
+            TypeForm.Italic,
+            TypeForm.Italic,
+            TypeForm.Italic,
+            TypeForm.Italic,
+            TypeForm.Italic,
+            TypeForm.ForeignLanguage | TypeForm.Italic,
+            TypeForm.ForeignLanguage | TypeForm.Italic,
+            TypeForm.ForeignLanguage | TypeForm.Italic,
+            TypeForm.Italic
+        ];
+
+        Assert.Equal(inputLength, modes.Length);
+
+        string resultString = LibLouis.Instance.Translate(
+            tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t)),
+            input,
+            outputLength,
+            modes,
+            null,
+            TranslationMode.Regular);
+
+        Assert.Equal("\\@han sagde `,yes`,.\\", resultString);
+    }
+}

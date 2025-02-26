@@ -1,0 +1,444 @@
+# Liblouis: Danish table for 6 dots grade 1 Crossword
+#
+#  Copyright (C) 2014-2022, Bue Vester-Andersen <bue@vester-andersen.dk>
+#
+#  This file is part of liblouis.
+#
+#  liblouis is free software: you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License as
+#  published by the Free Software Foundation, either version 2.1 of the
+#  License, or (at your option) any later version.
+#
+#  liblouis is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+#  Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public
+#  License along with liblouis. If not, see
+#  <http://www.gnu.org/licenses/>.
+#
+#------------
+#
+# This  is the Danish  6 dots grade 1 table for crossword puzzles in Braille.
+# The table ensures that all commonly used characters occupy only one cell.
+# This includes numbers, capitals and accented letters.
+# However, signs for which a one cell alternative was not found have not been explicitly removed from the table.
+
+# 
+# The output from this table is mainly ment for embossing and not suited for back-translation.
+#
+# Version: Bue Vester-Andersen, 220422
+
+### Table Metadata
+
+#-name: Dansk fuldskrift 6-punkt
+#-index-name: Danish, uncontracted, 6-dot
+#-display-name: Danish 6-dot uncontracted braille
+
+#+language: da
+#+type: crossword
+#+contraction: no
+#+grade: 1
+#+dots: 6
+#+direction: forward
+
+# Display opcodes
+include da-dk-octobraille.dis
+
+### Spaces
+
+include spaces.uti
+
+### Character definitions
+
+# Definition of dot cells
+punctuation ! 235 EXCLAMATION MARK
+punctuation " 2356 QUOTATION MARK
+punctuation # 3456 NUMBER SIGN
+sign & 12346 AMPERSAND
+punctuation ' 4 APOSTROPHE
+punctuation ( 236 LEFT PARENTHESIS
+punctuation ) 356 RIGHT PARENTHESIS
+punctuation * 35 ASTERISK
+math + 235 PLUS SIGN
+punctuation , 2 COMMA
+punctuation - 36 HYPHEN-MINUS
+punctuation . 3 FULL STOP
+punctuation / 34 SLASH
+punctuation : 25 COLON
+punctuation ; 23 SEMICOLON
+math = 2356 EQUALS SIGN
+punctuation ? 26 QUESTION MARK
+include latinLetterDef6Dots.uti
+
+include digits6Dots.uti
+
+punctuation \x00a7 346 SECTION SIGN (0xa7)
+
+lowercase \x00e5 16 LATIN LETTER A WITH RING ABOVE
+lowercase \x00e6 345 LATIN LETTER AE
+lowercase \x00f8 246 LATIN LETTER O WITH STROKE
+lowercase \x00fc 1256 LATIN LETTER U WITH DIAERESIS
+math \x00f7 256 DIVISION SIGN
+
+# Uppercase letters
+base uppercase \x00c5 \x00e5 LATIN LETTER A WITH RING ABOVE
+base uppercase \x00c6 \x00e6 LATIN LETTER AE
+base uppercase \x00d8 \x00f8 LATIN LETTER O WITH STROKE
+base uppercase \x00dc \x00fc LATIN CAPITAL LETTER U WITH DIAERESIS
+
+# cover all other Braille patterns
+include braille-patterns.cti
+
+# Characters with two or more cells
+
+sign $ 45-256 DOLLAR SIGN
+math % 245-356 PERCENT SIGN
+math < 45-134 LESS-THAN SIGN
+math > 45-234 GREATER-THAN SIGN
+sign @ 45-1 COMMERCIAL AT
+punctuation [ 5-236 LEFT SQUARE BRACKET
+punctuation \\ 45-16 REVERSE SLASH
+punctuation ] 5-356 RIGHT SQUARE BRACKET
+punctuation ^ 45-346 CIRCUMFLEX ACCENT
+punctuation _ 45-36 LOW LINE
+punctuation ` 4 GRAVE ACCENT
+punctuation { 45-246 LEFT CURLY BRACKET
+punctuation | 45-456 VERTICAL LINE
+punctuation } 45-135 RIGHT CURLY BRACKET
+punctuation ~ 45-6 TILDE
+
+# Misc unicode characters
+
+# CP1252 (\x0080-\x009f)
+sign \x0080 45-15 #EURO SIGN (0x80)
+punctuation \x0082 4 #Low single quote (0x82)
+sign \x0083 45-124 #Flurihn (0x83)
+punctuation \x0084 2356 #Low quote (0x84)
+punctuation \x0085 3-3-3 #Elipsis (0x85)
+math \x0089 245-356-356 #permille sign (0x89)
+lowercase \x009a 234 #LATIN LETTER S WITH CARON (0x8a)
+punctuation \x008b 4 #SINGLE LEFT-POINTING ANGLE QUOTATION MARK (0x8b)
+lowercase \x009c 246 #LATIN LIGATURE OE (0x8c)
+lowercase \x009e 1356 #LATIN LETTER Z WITH CARON (0x8e)
+punctuation \x0091 4 #LEFT SINGLE QUOTATION MARK (0x91)
+punctuation \x0092 4 #RIGHT SINGLE QUOTATION MARK (0x92)
+punctuation \x0093 2356 #LEFT DOUBLE QUOTATION MARK (0x93)
+punctuation \x0094 2356 #RIGHT DOUBLE QUOTATION MARK (0x94)
+sign \x0095 45-3 #Bullit (0x95)
+sign \x0096 36-36 #EN DASH (0x96)
+sign \x0097 36-36 #Em DASH (0x97)
+sign \x0099 45-2345 #TRADE MARK SIGN (0x99)
+punctuation \x009b 4 #SINGLE RIGHT-POINTING ANGLE QUOTATION MARK (0x9b)
+uppercase \x009f 13456 #LATIN CAPITAL LETTER Y WITH DIAERESIS (0x9f)
+
+# Latin-1 Supplement (Unicode block) (\x00a0-\x00ff)
+space \x00a0 0 NO-BREAK SPACE (0xa0)
+punctuation \x00a1 256 INVERTED EXCLAMATION MARK )0xa1)
+punctuation \x00a2 45-25 CENT SIGN (0xa2)
+punctuation \x00a3 123 POUND SIGN (0xa3)
+#punctuation \x00a4 2367 CURRENCY SIGN (0xa4)
+punctuation \x00a5 45-13456 YEN SIGN (0xa5)
+punctuation \x00a9 45-14 COPYRIGHT SIGN (0xa9)
+#letter \x00aa 234678 FEMININE ORDINAL INDICATOR (0xaa)
+punctuation \x00ab 2356 LEFT-POINTING DOUBLE ANGLE QUOTATION MARK (0xab)
+punctuation \x00ad 36 SOFT HYPHEN (0xad)
+punctuation \x00ae 45-1235 REGISTERED SIGN (0xae)
+sign \x00b0 4-356 DEGREE SIGN (0xb0)
+math \x00b1 45-235-36 PLUS-MINUS SIGN
+punctuation \x00b4 4 ACUTE ACCENT
+sign \x00b5 134 MICRO SIGN
+punctuation \x00bb 2356 RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
+punctuation \x00bf 26 INVERTED QUESTION MARK
+lowercase \x00e0 1 LATIN LETTER A WITH GRAVE
+lowercase \x00e1 1 LATIN LETTER A WITH ACUTE
+lowercase \x00e2 1 LATIN LETTER A WITH CIRCUMFLEX
+lowercase \x00e3 1 LATIN LETTER A WITH TILDE
+lowercase \x00e4 345 LATIN LETTER A WITH DIAERESIS
+lowercase \x00e7 14 LATIN LETTER C WITH CEDILLA
+lowercase \x00e8 15 LATIN LETTER E WITH GRAVE
+lowercase \x00e9 15 LATIN LETTER E WITH ACUTE
+lowercase \x00ea 15 LATIN LETTER E WITH CIRCUMFLEX
+lowercase \x00eb 15 LATIN LETTER E WITH DIAERESIS
+lowercase \x00ec 24 LATIN LETTER I WITH GRAVE
+lowercase \x00ed 24 LATIN LETTER I WITH ACUTE
+lowercase \x00ee 24 LATIN LETTER I WITH CIRCUMFLEX (first for back-translation)
+lowercase \x00ef 24 LATIN LETTER I WITH DIAERESIS
+lowercase \x00f0 145 LATIN LETTER ETH
+lowercase \x00f1 1345 LATIN LETTER N WITH TILDE
+lowercase \x00f2 135 LATIN LETTER O WITH GRAVE
+lowercase \x00f3 135 LATIN LETTER O WITH ACUTE
+lowercase \x00f4 135 LATIN LETTER O WITH CIRCUMFLEX (first for back-translation)
+lowercase \x00f5 135 LATIN LETTER O WITH TILDE
+lowercase \x00f6 246 LATIN LETTER O WITH DIAERESIS
+math \x00d7 3 MULTIPLICATION SIGN
+lowercase \x00f9 136 LATIN LETTER U WITH GRAVE
+lowercase \x00fa 136 LATIN LETTER U WITH ACUTE
+lowercase \x00fb 136 LATIN LETTER U WITH CIRCUMFLEX (first for back-translation
+lowercase \x00fd 13456 LATIN LETTER Y WITH ACUTE (infinite?)
+lowercase \x00fe 2345 LATIN LETTER THORN
+lowercase \x00df 234-234 LATIN SMALL LETTER SHARP S
+
+# Latin Extended-A (\x0100-\x017f)
+
+lowercase \x0101 1 Latin letter a with macron
+lowercase \x0103 1 Latin letter a with breve
+lowercase \x0105 1 Latin letter a with ogonek
+lowercase \x0107 14 Latin letter c with acute
+lowercase \x0109 14 Latin letter c with circumflex
+lowercase \x010b 14 Latin letter c with dot above
+lowercase \x010d 14 Latin letter c with caron
+lowercase \x010f 145 Latin letter d with caron
+lowercase \x0111 145 Latin letter d with stroke
+lowercase \x0113 15 Latin letter e with macron
+lowercase \x0115 15 Latin letter e with breve
+lowercase \x0117 15 Latin letter e with dot above
+lowercase \x0119 15 Latin letter e with ogonek
+lowercase \x011b 15 Latin letter e with caron
+lowercase \x011d 1245 Latin letter g with circumflex
+lowercase \x011f 1245 Latin letter g with breve
+lowercase \x0121 1245 Latin letter g with dot above
+lowercase \x0123 1245 Latin letter g with cedilla
+lowercase \x0125 125 Latin letter h with circumflex
+lowercase \x0127 125 Latin letter h with stroke
+lowercase \x0129 24 Latin letter i with tilde
+lowercase \x012b 24 Latin letter i with macron
+lowercase \x012d 24 Latin letter i with breve
+lowercase \x012f 24 Latin letter i with ogonek
+lowercase \x0131 24 Latin small dotless i
+lowercase \x0133 24-245 Latin ligature ij
+lowercase \x0135 245 Latin letter j with circumflex
+lowercase \x0137 13 Latin letter k with cedilla
+lowercase \x0138 12345 Small latin letter kra (Greenlandic q)
+lowercase \x013a 123 Latin letter l with acute
+lowercase \x013c 123 Latin letter l with cedilla
+lowercase \x013e 123 Latin letter l with caron
+lowercase \x0140 123 Latin letter l with middle dot
+lowercase \x0142 123 Latin letter l with stroke
+lowercase \x0144 1345 Latin letter n with acute
+lowercase \x0146 1345 Latin letter n with cedilla
+lowercase \x0148 1345 Latin letter n with caron
+lowercase \x0149 4-1345 Latin small letter n preceeded by apostrophe
+lowercase \x014b 1345 Latin letter eng
+lowercase \x014d 135 Latin letter o with macron
+lowercase \x014f 135 Latin letter o with breve
+lowercase \x0151 135 Latin letter o with double acute
+lowercase \x0153 135-15 #LATIN LIGATURE OE (0x8c)
+lowercase \x0155 1235 Latin letter r with acute
+lowercase \x0157 1235 Latin letter r with cedilla
+lowercase \x0159 1235 Latin letter r with caron
+lowercase \x015b 234 Latin letter s with acute
+lowercase \x015d 234 Latin letter s with circumflex
+lowercase \x015f 234 Latin letter s with cedilla
+lowercase \x0161 234 #LATIN LETTER S WITH CARON (0x8a)
+lowercase \x0163 2345 Latin letter t with cedilla
+lowercase \x0165 2345 Latin letter t with caron
+lowercase \x0167 2345 Latin letter t with stroke
+lowercase \x0169 136 Latin letter u with tilde
+lowercase \x016b 136 Latin letter u with macron
+lowercase \x016d 136 Latin letter u with breve
+lowercase \x016f 136 Latin letter u with ring above
+lowercase \x0171 136 Latin letter u with double acute
+lowercase \x0173 136 Latin letter u with ogonek
+lowercase \x0175 2456 Latin letter w with circumflex
+lowercase \x0177 13456 Latin letter y with circumflex
+lowercase \x00ff 13456 #LATIN LETTER Y WITH DIAERESIS (0x9f)
+lowercase \x017a 1356 Latin letter z with acute
+lowercase \x017c 1356 Latin letter z with dot above
+lowercase \x017e 1356 #LATIN LETTER Z WITH CARON (0x8e)
+lowercase \x017f 234 Latin small letter long s 
+
+# Latin Extended-B 
+
+
+# Uppercase letters
+
+base uppercase \x008a \x009a #LATIN LETTER S WITH CARON (0x8a)
+base uppercase \x008c \x009c #LATIN LIGATURE OE (0x8c)
+base uppercase \x008e \x009e #LATIN CAPITAL LETTER Z WITH CARON (0x8e)
+base uppercase \x00c0 \x00e0 LATIN LETTER A WITH GRAVE
+base uppercase \x00c1 \x00e1 LATIN LETTER A WITH ACUTE
+base uppercase \x00c2 \x00e2 LATIN LETTER A WITH CIRCUMFLEX
+base uppercase \x00c3 \x00e3 LATIN LETTER A WITH TILDE
+base uppercase \x00c4 \x00e4 LATIN LETTER A WITH DIAERESIS
+base uppercase \x00c7 \x00e7 LATIN LETTER C WITH CEDILLA
+base uppercase \x00c8 \x00e8 LATIN LETTER E WITH GRAVE
+base uppercase \x00c9 \x00e9 LATIN LETTER E WITH ACUTE
+base uppercase \x00ca \x00ea LATIN LETTER E WITH CIRCUMFLEX
+base uppercase \x00cb \x00eb LATIN LETTER E WITH DIAERESIS
+base uppercase \x00cc \x00ec LATIN LETTER I WITH GRAVE
+base uppercase \x00cd \x00ed LATIN LETTER I WITH ACUTE
+base uppercase \x00ce \x00ee LATIN LETTER I WITH CIRCUMFLEX (first for back-translation)
+base uppercase \x00cf \x00ef LATIN LETTER I WITH DIAERESIS
+base uppercase \x00d0 \x00f0 LATIN LETTER ETH
+base uppercase \x00d1 \x00f1 LATIN LETTER N WITH TILDE
+base uppercase \x00d2 \x00f2 LATIN LETTER O WITH GRAVE
+base uppercase \x00d3 \x00f3 LATIN LETTER O WITH ACUTE
+base uppercase \x00d4 \x00f4 LATIN LETTER O WITH CIRCUMFLEX (first for back-translation)
+base uppercase \x00d5 \x00f5 LATIN LETTER O WITH TILDE
+base uppercase \x00d6 \x00f6 LATIN LETTER O WITH DIAERESIS
+base uppercase \x00d9 \x00f9 LATIN LETTER U WITH GRAVE
+base uppercase \x00da \x00fa LATIN LETTER U WITH ACUTE
+base uppercase \x00db \x00fb LATIN LETTER U WITH CIRCUMFLEX (first for back-translation
+base uppercase \x00dd \x00fd LATIN LETTER Y WITH ACUTE (infinite?)
+base uppercase \x00de \x00fe LATIN CAPITAL LETTER THORN
+base uppercase \x0100 \x0101 Latin letter a with macron
+base uppercase \x0102 \x0103 Latin letter a with breve
+base uppercase \x0104 \x0105 Latin letter a with ogonek
+base uppercase \x0106 \x0107 Latin letter c with acute
+base uppercase \x0108 \x0109 Latin letter c with circumflex
+base uppercase \x010a \x010b Latin letter c with dot above
+base uppercase \x010c \x010d Latin letter c with caron
+base uppercase \x010e \x010f Latin letter d with caron
+base uppercase \x0110 \x0111 Latin letter d with stroke
+base uppercase \x0112 \x0113 Latin letter e with macron
+base uppercase \x0114 \x0115 Latin letter e with breve
+base uppercase \x0116 \x0117 Latin letter e with dot above
+base uppercase \x0118 \x0119 Latin letter e with ogonek
+base uppercase \x011a \x011b Latin letter e with caron
+base uppercase \x011c \x011d Latin letter g with circumflex
+base uppercase \x011e \x011f Latin letter g with breve
+base uppercase \x0120 \x0121 Latin letter g with dot above
+base uppercase \x0122 \x0123 Latin letter g with cedilla
+base uppercase \x0124 \x0125 Latin letter h with circumflex
+base uppercase \x0126 \x0127 Latin letter h with stroke
+base uppercase \x0128 \x0129 Latin letter i with tilde
+base uppercase \x012a \x012b Latin letter i with macron
+base uppercase \x012c \x012d Latin letter i with breve
+base uppercase \x012e \x012f Latin letter i with ogonek
+base uppercase \x0130 \x0131 Latin capital letter i with dot above / small dotless i
+base uppercase \x0132 \x0133 Latin ligature ij
+base uppercase \x0134 \x0135 Latin letter j with circumflex
+base uppercase \x0136 \x0137 Latin letter k with cedilla
+base uppercase \x0139 \x013a Latin letter l with acute
+base uppercase \x013b \x013c Latin letter l with cedilla
+base uppercase \x013d \x013e Latin letter l with caron
+base uppercase \x013f \x0140 Latin letter l with middle dot
+base uppercase \x0141 \x0142 Latin letter l with stroke
+base uppercase \x0143 \x0144 Latin letter n with acute
+base uppercase \x0145 \x0146 Latin letter n with cedilla
+base uppercase \x0147 \x0148 Latin letter n with caron
+base uppercase \x014a \x014b Latin letter eng
+base uppercase \x014c \x014d Latin letter o with macron
+base uppercase \x014e \x014f Latin letter o with breve
+base uppercase \x0150 \x0151 Latin letter o with double acute
+base uppercase \x0152 \x0153 #LATIN LIGATURE OE (0x8c)
+base uppercase \x0154 \x0155 Latin letter r with acute
+base uppercase \x0156 \x0157 Latin letter r with cedilla
+base uppercase \x0158 \x0159 Latin letter r with caron
+base uppercase \x015a \x015b Latin letter s with acute
+base uppercase \x015c \x015d Latin letter s with circumflex
+base uppercase \x015e \x015f Latin letter s with cedilla
+base uppercase \x0160 \x0161 #LATIN LETTER S WITH CARON (0x8a)
+base uppercase \x0162 \x0163 Latin letter t with cedilla
+base uppercase \x0164 \x0165 Latin letter t with caron
+base uppercase \x0166 \x0167 Latin letter t with stroke
+base uppercase \x0168 \x0169 Latin letter u with tilde
+base uppercase \x016a \x016b Latin letter u with macron
+base uppercase \x016c \x016d Latin letter u with breve
+base uppercase \x016e \x016f Latin letter u with ring above
+base uppercase \x0170 \x0171 Latin letter u with double acute
+base uppercase \x0172 \x0173 Latin letter u with ogonek
+base uppercase \x0174 \x0175 Latin letter w with circumflex
+base uppercase \x0176 \x0177 Latin letter y with circumflex
+base uppercase \x0178 \x00ff #LATIN LETTER Y WITH DIAERESIS (0x9f)
+base uppercase \x0179 \x017a Latin letter z with acute
+base uppercase \x017b \x017c Latin letter z with dot above
+base uppercase \x017d \x017e #LATIN LETTER Z WITH CARON (0x8e)
+
+# Misc punctuation
+
+space \x2000 0 # En quad
+space \x2001 0 # Em quad
+space \x2002 0 # En space
+space \x2003 0 # Em space
+space \x2004 0 # Three-Per-Em Space
+space \x2005 0 # Four-Per-Em Space
+space \x2006 0 # Six-Per-Em Space
+space \x2007 0 # Figure Space
+space \x2008 0 # Punctuation Space
+space \x2009 0 # Thin Space
+space \x200a 0 # Hair Space
+punctuation \x2010 36 # Hyphen
+punctuation \x2011 36 # Non-breaking hyphen
+punctuation \x2012 36 # Figure dash
+sign \x2013 36-36 #EN DASH (0x96)
+sign \x2014 36-36 #Em DASH (0x97)
+punctuation \x2018 4 #LEFT SINGLE QUOTATION MARK (0x91)
+punctuation \x2019 4 #RIGHT SINGLE QUOTATION MARK (0x92)
+punctuation \x201A 4 #Low single quote (0x82)
+punctuation \x201b 4 # Single High-Reversed-9 Quotation Mark
+punctuation \x201c 2356 #LEFT DOUBLE QUOTATION MARK (0x93)
+punctuation \x201d 2356 #RIGHT DOUBLE QUOTATION MARK (0x94)
+punctuation \x201E 2356 #Low quote (0x84)
+punctuation \x201f 2356 # Double High-Reversed-9 Quotation Mark
+sign \x2022 45-3 #Bullit (0x95)
+sign \x2023 45-3 #Triangular bullit
+punctuation \x2026 3-3-3 #Elipsis (0x85)
+space \x202f 0 # Narrow No-Break Space (NNBSP)
+math \x2030 245-356-356 #permille sign (0x89)
+punctuation \x2039 4 #SINGLE LEFT-POINTING ANGLE QUOTATION MARK (0x8b)
+punctuation \x203A 4 #SINGLE RIGHT-POINTING ANGLE QUOTATION MARK (0x9b)
+punctuation \x203c 235-235 # Double Exclamation Mark
+punctuation \x203d 26-235 # Interrobang
+punctuation \x2047 26-26 # Double question mark
+punctuation \x2048 26-235 # Question exclamation mark
+punctuation \x2049 235-26 # Exclamation question mark
+
+
+# Litdigits
+include litdigits6Dots.uti
+
+undefined 26
+
+### Braille indicators and special characters
+# Uncomment to enable.
+
+#hyphen - 36
+
+#letsign 6
+
+# No letsign before normal letters or letters with accents
+# Letters with accents are handled by pass2.
+#noletsign ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅÄÖÜ\x0152
+#noletsign abcdefghijklmnopqrstuvwxyzæøåäöü\x00df\x0149\x0153
+
+#capsletter 46 
+#begcapsword 456
+#endcapsword 6
+
+#numsign 3456
+
+#class of none-space characters that demand double dashes
+# Used in context lines later.
+#must be the first class defined.
+attribute charsWDoubleDash .,?!/:"'() # class w
+
+### Correct
+
+#Use the "correct" opcode to convert chars that can't be back-translated
+# and make the table more simple.
+
+# Dashes
+attribute dashes \x2013\x2014\x0096\x0097\x00ad
+noback correct %dashes "-"
+
+attribute quotes \x201e\x0084\x201c\x0093\x201d\x0094\x00ab\x00bb 
+noback correct %quotes "\""
+
+attribute apostrophes `\x201a\x0082\x2039\x008b\x2018\x0091\x2019\x0092\x203a\x009b\x00b4
+noback correct %apostrophes "'"
+
+# Punctuations, math and numbers
+midnum , 2
+midnum . 3
+# the following rule is doubtful, but probably does not apply.
+#midnum - 36
+endnum - 36
+midnum / 34
+midnum : 25
+
+midnum ^ 45-346
+midnum \x00d7 45-3-3456
+
