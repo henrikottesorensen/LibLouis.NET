@@ -10,11 +10,13 @@
     <Version>0.1</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/Notalib/autobraille.git</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/Notalib/autobraille.git/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Notalib/LibLouis.NET.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Notalib/LibLouis.NET/</PackageProjectUrl>
     <PackageTags>liblouis, braille</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <LangVersion>latest</LangVersion>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>

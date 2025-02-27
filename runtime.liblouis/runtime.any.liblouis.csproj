@@ -36,7 +36,6 @@ The Liblouis software suite provides an open-source braille translator, back-tra
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-    
   </ItemGroup>
   
 </Project>

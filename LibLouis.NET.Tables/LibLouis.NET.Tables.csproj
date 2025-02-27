@@ -13,7 +13,7 @@
       Packaged by Nota.
     </Description>
     <PackageProjectUrl>https://liblouis.io/</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/liblouis/liblouis</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Notalib/LibLouis.NET.git</RepositoryUrl>
     <PackageTags>liblouis, braille</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
