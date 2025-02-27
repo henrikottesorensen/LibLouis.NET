@@ -113,7 +113,14 @@ public class LibLouis : IDisposable
     /// <summary>
     /// Returns version number of the native liblouis library.
     /// </summary>
-    public string Version => NativeMethods.lou_version();
+    public string Version
+    {
+        get
+        {
+            string version = NativeMethods.lou_version();
+            return version;
+        }
+    }
 
     /// <summary>
     /// This property is used to tell liblouis and liblouisutdml where tables and files are located. It thus makes them completely relocatable, even on Linux. 
@@ -181,15 +188,15 @@ public class LibLouis : IDisposable
     {
         ArgumentNullException.ThrowIfNull(input, nameof(input));
 
-        byte[] inBuf = PrepareUCSInputBuffer(input);
-        byte[] outBuf = PrepareUCSOutputBuffer(input.Length);
+        byte[] inputBuffer = PrepareUCSInputBuffer(input);
+        byte[] outputBuffer = PrepareUCSOutputBuffer(input.Length);
 
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (_lock)
         {
-            success = NativeMethods.lou_dotsToChar(tables, inBuf, outBuf, input.Length, TranslationMode.Regular) > 0;
+            success = NativeMethods.lou_dotsToChar(tables, inputBuffer, outputBuffer, input.Length, TranslationMode.Regular) > 0;
         }
 
         if (!success)
@@ -197,7 +204,7 @@ public class LibLouis : IDisposable
             throw new LibLouisException($"String translation failed: {_lastLogMessage}");
         }
 
-        return ConvertUCSOutputBufferToString(outBuf, input.Length);
+        return ConvertUCSOutputBufferToString(outputBuffer, input.Length);
     }
 
     /// <summary>
@@ -209,8 +216,8 @@ public class LibLouis : IDisposable
     {
         ArgumentNullException.ThrowIfNull(input, nameof(input));
 
-        byte[] inBuf = PrepareUCSInputBuffer(input);
-        byte[] outBuf = PrepareUCSOutputBuffer(input.Length);
+        byte[] inputBuffer = PrepareUCSInputBuffer(input);
+        byte[] outputBuffer = PrepareUCSOutputBuffer(input.Length);
         
         string tables = string.Join(',', tableList);
 
@@ -218,7 +225,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
-            success = NativeMethods.lou_charToDots(tables, inBuf, outBuf, input.Length, TranslationMode.Regular) > 0;
+            success = NativeMethods.lou_charToDots(tables, inputBuffer, outputBuffer, input.Length, TranslationMode.Regular) > 0;
         }
 
         if (!success)
@@ -226,7 +233,7 @@ public class LibLouis : IDisposable
             throw new LibLouisException($"String translation failed: {_lastLogMessage}");
         }
 
-        return ConvertUCSOutputBufferToString(outBuf, input.Length);
+        return ConvertUCSOutputBufferToString(outputBuffer, input.Length);
 
     }
 
@@ -240,9 +247,9 @@ public class LibLouis : IDisposable
     /// <param name="outputLength">Maximum output length.</param>
     /// <param name="formtype">The typeform parameter is used to indicate italic type, boldface type, computer braille, etc. It is an array of formtype with the same length as the input buffer pointed to by input. Each element indicates the typeform of the corresponding character in the input buffer. </param>
     /// <param name="spacing">The spacing parameter is used to indicate differences in spacing between the input string and the translated output string. It is also of the same length as the input string. If this parameter is NULL, no spacing information is computed. </param>
-    /// <param name="outputPos"></param>
-    /// <param name="inputPos"></param>
-    /// <param name="cursorPos"></param>
+    /// <param name="outputPosition"></param>
+    /// <param name="inputPosition"></param>
+    /// <param name="cursorPosition"></param>
     /// <param name="mode">The mode parameter specifies how the translation should be done. They are all powers of 2, so that a combined mode can be specified by adding up different values.</param>
     /// <returns>Translated string</returns>
     /// <exception cref="ArgumentException"></exception>
@@ -253,9 +260,9 @@ public class LibLouis : IDisposable
         int outputLength,
         TypeForm[]? formtype,
         string? spacing,
-        int[] outputPos,
-        int[] inputPos,
-        int cursorPos,
+        int[] outputPosition,
+        int[] inputPosition,
+        int cursorPosition,
         TranslationMode mode)
     {
         if (outputLength < 1)
@@ -268,28 +275,28 @@ public class LibLouis : IDisposable
             throw new ArgumentException($"{nameof(spacing)} must be the same length as input or null");
         }
 
-        if (inputPos.Length < outputLength)
+        if (inputPosition.Length < outputLength)
         {
-            throw new ArgumentException($"{nameof(inputPos)} must be an array of integers of at least outputLength elements.", nameof(inputPos));
+            throw new ArgumentException($"{nameof(inputPosition)} must be an array of integers of at least outputLength elements.", nameof(inputPosition));
         }
 
-        if (outputPos.Length < input.Length)
+        if (outputPosition.Length < input.Length)
         {
-            throw new ArgumentException($"{nameof(outputPos)} parameter must point to an array of integers with at least input length elements.", nameof(outputPos));
+            throw new ArgumentException($"{nameof(outputPosition)} parameter must point to an array of integers with at least input length elements.", nameof(outputPosition));
         }
 
         int inputLength = input.Length + 1;
         int outputBufferLength = outputLength;
 
-        byte[] inBuf = PrepareUCSInputBuffer(input);
-        byte[] outBuf = PrepareUCSOutputBuffer(outputBufferLength);
+        byte[] inputBuffer = PrepareUCSInputBuffer(input);
+        byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
 
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (_lock)
         {
-            success = NativeMethods.lou_translate(tables, inBuf, ref inputLength, outBuf, ref outputLength, formtype, spacing, inputPos, outputPos, ref cursorPos, mode) > 0;
+            success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, inputPosition, outputPosition, ref cursorPosition, mode) > 0;
         }
 
         if (!success)
@@ -299,10 +306,10 @@ public class LibLouis : IDisposable
 
         return new TranslatedString
         {
-            Translated = ConvertUCSOutputBufferToString(outBuf, outputLength),
-            CursorPosition = cursorPos,
-            InputPosition = inputPos,
-            OutputPosition = outputPos,
+            Translated = ConvertUCSOutputBufferToString(outputBuffer, outputLength),
+            CursorPosition = cursorPosition,
+            InputPosition = inputPosition,
+            OutputPosition = outputPosition,
         };
     }
 
@@ -335,15 +342,15 @@ public class LibLouis : IDisposable
         int inputLength = input.Length + 1;
         int outputBufferLength = outputLength;
 
-        byte[] inBuf = PrepareUCSInputBuffer(input);
-        byte[] outBuf = PrepareUCSOutputBuffer(outputBufferLength);
+        byte[] inputBuffer = PrepareUCSInputBuffer(input);
+        byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
 
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (_lock)
         {
-            success = NativeMethods.lou_translateString(tables, inBuf, ref inputLength, outBuf, ref outputLength, formtype, spacing, mode) > 0;
+            success = NativeMethods.lou_translateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, mode) > 0;
         }
 
         if (!success)
@@ -351,7 +358,7 @@ public class LibLouis : IDisposable
             throw new LibLouisException($"String translation failed: {_lastLogMessage}");
         }
 
-        return ConvertUCSOutputBufferToString(outBuf, outputLength);
+        return ConvertUCSOutputBufferToString(outputBuffer, outputLength);
 
     }
 
@@ -365,9 +372,9 @@ public class LibLouis : IDisposable
     /// <param name="outputLength">Maximum output length.</param>
     /// <param name="formtype">The typeform parameter is used to indicate italic type, boldface type, computer braille, etc. It is an array of formtype with the same length as the input buffer pointed to by input. Each element indicates the typeform of the corresponding character in the input buffer. </param>
     /// <param name="spacing">The spacing parameter is used to indicate differences in spacing between the input string and the translated output string. It is also of the same length as the input string. If this parameter is NULL, no spacing information is computed. </param>
-    /// <param name="outputPos"></param>
-    /// <param name="inputPos"></param>
-    /// <param name="cursorPos"></param>
+    /// <param name="outputPosition"></param>
+    /// <param name="inputPosition"></param>
+    /// <param name="cursorPosition"></param>
     /// <param name="mode">The mode parameter specifies how the translation should be done. They are all powers of 2, so that a combined mode can be specified by adding up different values.</param>
     /// <returns>Translated string</returns>
     /// <exception cref="ArgumentException"></exception>
@@ -378,9 +385,9 @@ public class LibLouis : IDisposable
         int outputLength,
         TypeForm[]? formtype,
         string? spacing,
-        int[] outputPos,
-        int[] inputPos,
-        int cursorPos,
+        int[] outputPosition,
+        int[] inputPosition,
+        int cursorPosition,
         TranslationMode mode)
     {
         if (outputLength < 1)
@@ -393,28 +400,28 @@ public class LibLouis : IDisposable
             throw new ArgumentException($"{nameof(spacing)} must be the same length as input or null");
         }
 
-        if (inputPos.Length < outputLength)
+        if (inputPosition.Length < outputLength)
         {
-            throw new ArgumentException($"{nameof(inputPos)} must be an array of integers of at least outputLength elements.", nameof(inputPos));
+            throw new ArgumentException($"{nameof(inputPosition)} must be an array of integers of at least outputLength elements.", nameof(inputPosition));
         }
 
-        if (outputPos.Length < input.Length)
+        if (outputPosition.Length < input.Length)
         {
-            throw new ArgumentException($"{nameof(outputPos)} parameter must point to an array of integers with at least input length elements.", nameof(outputPos));
+            throw new ArgumentException($"{nameof(outputPosition)} parameter must point to an array of integers with at least input length elements.", nameof(outputPosition));
         }
 
         int inputLength = input.Length + 1;
         int outputBufferLength = outputLength;
 
-        byte[] inBuf = PrepareUCSInputBuffer(input);
-        byte[] outBuf = PrepareUCSOutputBuffer(outputBufferLength);
+        byte[] inputBuffer = PrepareUCSInputBuffer(input);
+        byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
 
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (_lock)
         {
-            success = NativeMethods.lou_backTranslate(tables, inBuf, ref inputLength, outBuf, ref outputLength, formtype, spacing, inputPos, outputPos, ref cursorPos, mode) > 0;
+            success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, inputPosition, outputPosition, ref cursorPosition, mode) > 0;
         }
 
         if (!success)
@@ -424,10 +431,10 @@ public class LibLouis : IDisposable
 
         return new TranslatedString
         {
-            Translated = ConvertUCSOutputBufferToString(outBuf, outputLength),
-            CursorPosition = cursorPos,
-            InputPosition = inputPos,
-            OutputPosition = outputPos,
+            Translated = ConvertUCSOutputBufferToString(outputBuffer, outputLength),
+            CursorPosition = cursorPosition,
+            InputPosition = inputPosition,
+            OutputPosition = outputPosition,
         };
     }
 
@@ -458,15 +465,15 @@ public class LibLouis : IDisposable
         int inputLength = input.Length + 1;
         int outputBufferLength = outputLength;
 
-        byte[] inBuf = PrepareUCSInputBuffer(input);
-        byte[] outBuf = PrepareUCSOutputBuffer(outputBufferLength);
+        byte[] inputBuffer = PrepareUCSInputBuffer(input);
+        byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
 
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (_lock)
         {
-            success = NativeMethods.lou_backTranslateString(tables, inBuf, ref inputLength, outBuf, ref outputLength, formtype, spacing, mode) > 0;
+            success = NativeMethods.lou_backTranslateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, mode) > 0;
         }
 
         if (!success)
@@ -474,7 +481,7 @@ public class LibLouis : IDisposable
             throw new LibLouisException($"String translation failed: {_lastLogMessage}");
         }
 
-        return ConvertUCSOutputBufferToString(outBuf, outputLength);
+        return ConvertUCSOutputBufferToString(outputBuffer, outputLength);
     }
 
     /// <summary>
@@ -496,13 +503,13 @@ public class LibLouis : IDisposable
         string tables = string.Join(',', tableList);
         string hyphens = new('\0', input.Length + 1);
 
-        byte[] inBuf = PrepareUCSInputBuffer(input);
+        byte[] inputBuffer = PrepareUCSInputBuffer(input);
 
         bool success;
        
         lock (_lock)
         {
-            success = NativeMethods.lou_hyphenate(tables, inBuf, input.Length + 1, ref hyphens, mode) > 0; 
+            success = NativeMethods.lou_hyphenate(tables, inputBuffer, input.Length + 1, ref hyphens, mode) > 0; 
         }
         
         if (!success)
@@ -530,21 +537,21 @@ public class LibLouis : IDisposable
     /// <returns></returns>
     private byte[] PrepareUCSOutputBuffer(int outputLength)
     {
-        byte[] outBuf = new byte[(outputLength + 1) * CharacterSize];
-        Array.Fill<byte>(outBuf, 0);
+        byte[] outputBuffer = new byte[(outputLength + 1) * CharacterSize];
+        Array.Fill<byte>(outputBuffer, 0);
 
-        return outBuf;
+        return outputBuffer;
     }
 
     /// <summary>
     /// Convert UCS-2/4 output string to managed string.
     /// </summary>
-    /// <param name="outBuf"></param>
+    /// <param name="outputBuffer"></param>
     /// <param name="outputLength"></param>
     /// <returns></returns>
-    private string ConvertUCSOutputBufferToString(byte[] outBuf, int outputLength)
+    private string ConvertUCSOutputBufferToString(byte[] outputBuffer, int outputLength)
     {
-        return LibLouisStringEncoder.GetString(outBuf, 0, Math.Min(outputLength * CharacterSize, outBuf.Length));
+        return LibLouisStringEncoder.GetString(outputBuffer, 0, Math.Min(outputLength * CharacterSize, outputBuffer.Length));
     }
 
     protected virtual void Dispose(bool disposing)

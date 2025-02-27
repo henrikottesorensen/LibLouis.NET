@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace LibLouis.NET;
 
@@ -12,7 +13,7 @@ public static partial class NativeMethods
     /// </summary>
     /// <returns>LibLouis version.</returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
-    [LibraryImport("liblouis", EntryPoint = "lou_version", StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport("liblouis", EntryPoint = "lou_version", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(UTF8StringNoFreeMarshaller))]
     internal static partial string lou_version();
 
     /// <summary>
