@@ -1,3 +1,7 @@
 ﻿.vs
 **/obj
 **/bin
+upstream
+packages
+runtime.liblouis/runtimes/win-x64/native/liblouis.dll
+runtime.liblouis/runtimes/win-x86/native/liblouis.dll
