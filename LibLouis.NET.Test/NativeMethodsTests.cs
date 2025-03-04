@@ -98,4 +98,22 @@ public class NativeMethodsTests
 
         Assert.Equal("\\@han sagde `,yes`,.\\", resultString);
     }
+
+    [Fact]
+    public void TestPositionResults()
+    {
+        const string input = "Første linje. Anden linje, med kursiveret tekst. Tredje linje.";
+        const string expected = "@fze linje. @anç linje, m kursi#rò ükz. @tàdje linje.";
+
+        string[] tables = ["tables/da-dk-braillo.dis", "tables/da-dk-g26.ctb"];
+
+        int outputLength = input.Length * 4;
+        int cursorPosition = 0;
+        int[] inputPosition = new int[outputLength];
+        int[] outputPosition = new int[input.Length];
+
+        TranslatedString translated = LibLouis.Instance.Translate(tables, input, outputLength, null, null, outputPosition, inputPosition, cursorPosition, TranslationMode.Regular);
+
+        Assert.Equal(expected, translated.Output);
+    }
 }

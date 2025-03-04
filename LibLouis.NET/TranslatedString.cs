@@ -2,7 +2,7 @@
 
 public class TranslatedString
 {
-    public required string Translated { get; set; }
+    public required string Output { get; set; }
     
     public required int[] OutputPosition { get; set; }
     

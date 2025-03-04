@@ -296,7 +296,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
-            success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, inputPosition, outputPosition, ref cursorPosition, mode) > 0;
+            success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
         }
 
         if (!success)
@@ -306,7 +306,7 @@ public class LibLouis : IDisposable
 
         return new TranslatedString
         {
-            Translated = ConvertUCSOutputBufferToString(outputBuffer, outputLength),
+            Output = ConvertUCSOutputBufferToString(outputBuffer, outputLength),
             CursorPosition = cursorPosition,
             InputPosition = inputPosition,
             OutputPosition = outputPosition,
@@ -421,7 +421,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
-            success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, inputPosition, outputPosition, ref cursorPosition, mode) > 0;
+            success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
         }
 
         if (!success)
@@ -431,7 +431,7 @@ public class LibLouis : IDisposable
 
         return new TranslatedString
         {
-            Translated = ConvertUCSOutputBufferToString(outputBuffer, outputLength),
+            Output = ConvertUCSOutputBufferToString(outputBuffer, outputLength),
             CursorPosition = cursorPosition,
             InputPosition = inputPosition,
             OutputPosition = outputPosition,
