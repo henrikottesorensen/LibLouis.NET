@@ -7,8 +7,8 @@
     <Authors>Liblouis contributors.</Authors>
     <Company>Liblouis</Company>
     <Title>$(AssemblyName)</Title>
-    <Version>3.32.0</Version>
-    <Copyright>Liblouis 2010 - 2024</Copyright>
+    <Version>3.33.0</Version>
+    <Copyright>Liblouis 2010 - 2025</Copyright>
     <Description>
       Packaged by Nota.
     </Description>
