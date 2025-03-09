@@ -19,4 +19,5 @@ cp -r upstream/liblouis-${LIBLOUIS_VERSION}/tables/ LibLouis.NET.Tables/tables
 # Build and pack solution.
 dotnet clean LibLouis.NET.sln && \
 dotnet build --configuration=Release LibLouis.NET.sln && \
-dotnet pack --output /packages --include-symbols --configuration Release LibLouis.NET.sln
+dotnet pack --output /packages --configuration Release LibLouis.NET.sln && \
+dotnet pack --output /packages --include-symbols --configuration Release LibLouis.NET/LibLouis.NET.csproj

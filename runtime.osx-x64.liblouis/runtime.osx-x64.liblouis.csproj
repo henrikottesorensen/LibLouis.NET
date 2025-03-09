@@ -19,7 +19,7 @@ The Liblouis software suite provides an open-source braille translator, back-tra
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="runtimes/osx-x64/native/liblouis.dll" PackagePath="runtimes/osx-x64/native/liblouis.dylib" Pack="true">
+    <None Include="runtimes/osx-x64/native/liblouis.dylib" PackagePath="runtimes/osx-x64/native/liblouis.dylib" Pack="true">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="LICENSE">

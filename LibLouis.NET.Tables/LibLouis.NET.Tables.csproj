@@ -12,8 +12,8 @@
     <Description>
       Packaged by Nota.
     </Description>
-    <PackageProjectUrl>https://liblouis.io/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Notalib/LibLouis.NET.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Notalib/LibLouis.NET/</PackageProjectUrl>
     <PackageTags>liblouis, braille</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>

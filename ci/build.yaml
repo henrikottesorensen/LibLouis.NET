@@ -1,0 +1,42 @@
+trigger:
+  - main
+pr: none
+
+variables:
+  - group: github-packages
+
+stages:
+  - stage: Build
+    jobs:
+    - job: 
+      displayName: "Build macOS runtime images"
+      pool:
+        vmImage: "macOS-latest"
+      steps:
+        - bash: "brew install coreutils"
+        - task: Bash@3
+          inputs: 
+            filePath: "build_runtime_macos_packages.sh"
+        - task: DotNetCoreCLI@2
+          displayName: Publish nuget packages
+          inputs:
+            command: 'custom'
+            custom: 'nuget'
+            arguments: 'push "packages/*.nupkg" --source https://nuget.pkg.github.com/Notalib/index.json --skip-duplicate --api-key "$(github_token)"'
+
+    - job: Build
+      pool:
+        name: "Linux OnPremise Agents"
+      displayName: Build
+      steps:
+        - task: Docker@2
+          inputs:
+            command: build
+            arguments: "--output=packages"
+            tags: "liblouis-builder:latest"
+        - task: DotNetCoreCLI@2
+          displayName: Publish nuget packages
+          inputs:
+            command: 'custom'
+            custom: 'nuget'
+            arguments: 'push "packages/*.nupkg" --source https://nuget.pkg.github.com/Notalib/index.json --skip-duplicate --api-key "$(github_token)"'
