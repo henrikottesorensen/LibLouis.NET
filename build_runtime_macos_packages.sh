@@ -30,8 +30,14 @@ build_runtime_nuget_macos() {
 
     ./configure ${CONFIGURE_PARAMETERS} --host=${ARCH}-apple-darwin
     make
-    mkdir -p ../../source/runtime.${DOTNETARCH}.liblouis/runtimes/${DOTNETARCH}/native/
-    cp upstream/liblouis-${LIBLOUIS_VERSION}/liblouis/.libs/liblouis.so ../../runtime.${DOTNETARCH}.liblouis/runtimes/${DOTNETARCH}/native/liblouis.so
+    mkdir -p ../../runtime.${DOTNETARCH}.liblouis/runtimes/${DOTNETARCH}/native/
+    cp liblouis/.libs/liblouis.dylib ../../runtime.${DOTNETARCH}.liblouis/runtimes/${DOTNETARCH}/native/liblouis.dylib
+
+    if ! file ../../runtime.${DOTNETARCH}.liblouis/runtimes/${DOTNETARCH}/native/liblouis.dylib | grep ${ARCH}; then
+        echo "Library is for the wrong archtecture."
+        exit 1;
+    fi
+
     make distclean
 
     cd ../../
