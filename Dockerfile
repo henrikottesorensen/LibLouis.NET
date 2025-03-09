@@ -9,7 +9,8 @@ RUN apt update && \
 WORKDIR /source
 ADD . /source
 
-RUN sh ./build.sh
+RUN sh ./build_runtime_packages.sh
+RUN sh ./build_managed_packages.sh
 
 FROM scratch
 COPY --from=build /packages/* /

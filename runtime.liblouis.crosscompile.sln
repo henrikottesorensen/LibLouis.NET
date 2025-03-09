@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35707.178 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "runtime.liblouis", "runtime.liblouis\runtime.liblouis.csproj", "{A866FECD-8DAC-4D66-9C27-F504335B2B5F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "runtime.linux-arm64.liblouis", "runtime.linux-arm64.liblouis\runtime.linux-arm64.liblouis.csproj", "{19428C44-3D8A-45FA-916D-9505754878D9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "runtime.linux-x64.liblouis", "runtime.linux-x64.liblouis\runtime.linux-x64.liblouis.csproj", "{B6B095EC-9541-4396-903F-BAD3EB1094E7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "runtime.linux-x86.liblouis", "runtime.linux-x86.liblouis\runtime.linux-x86.liblouis.csproj", "{16E1D83A-AA0A-4E4E-94E8-D5B2ACD6EDFE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "runtime.win-x64.liblouis", "runtime.win-x64.liblouis\runtime.win-x64.liblouis.csproj", "{DD4CDD89-1C43-438E-B1A2-9091851F20B6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "runtime.win-x86.liblouis", "runtime.win-x86.liblouis\runtime.win-x86.liblouis.csproj", "{3BB6EE1E-EEAB-4885-846A-C02704F012AA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A866FECD-8DAC-4D66-9C27-F504335B2B5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A866FECD-8DAC-4D66-9C27-F504335B2B5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A866FECD-8DAC-4D66-9C27-F504335B2B5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A866FECD-8DAC-4D66-9C27-F504335B2B5F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19428C44-3D8A-45FA-916D-9505754878D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19428C44-3D8A-45FA-916D-9505754878D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19428C44-3D8A-45FA-916D-9505754878D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19428C44-3D8A-45FA-916D-9505754878D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6B095EC-9541-4396-903F-BAD3EB1094E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6B095EC-9541-4396-903F-BAD3EB1094E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6B095EC-9541-4396-903F-BAD3EB1094E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6B095EC-9541-4396-903F-BAD3EB1094E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16E1D83A-AA0A-4E4E-94E8-D5B2ACD6EDFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16E1D83A-AA0A-4E4E-94E8-D5B2ACD6EDFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16E1D83A-AA0A-4E4E-94E8-D5B2ACD6EDFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16E1D83A-AA0A-4E4E-94E8-D5B2ACD6EDFE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD4CDD89-1C43-438E-B1A2-9091851F20B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD4CDD89-1C43-438E-B1A2-9091851F20B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD4CDD89-1C43-438E-B1A2-9091851F20B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD4CDD89-1C43-438E-B1A2-9091851F20B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3BB6EE1E-EEAB-4885-846A-C02704F012AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BB6EE1E-EEAB-4885-846A-C02704F012AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BB6EE1E-EEAB-4885-846A-C02704F012AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BB6EE1E-EEAB-4885-846A-C02704F012AA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

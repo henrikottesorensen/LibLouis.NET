@@ -1,0 +1,34 @@
+{
+    "runtimes": {
+        "linux-arm64": {
+            "runtime.liblouis": {
+                "libLLVM.runtime.linux-arm64": "3.33.0"
+            }
+        },
+        "linux-x64": {
+            "runtime.liblouis": {
+                "libLLVM.runtime.linux-x64": "3.33.0"
+            }
+        },
+        "osx-arm64": {
+            "runtime.liblouis": {
+                "libLLVM.runtime.osx-arm64": "3.33.0"
+            }
+        },
+        "osx-x64": {
+            "runtime.liblouis": {
+                "libLLVM.runtime.osx-x64": "3.33.0"
+            }
+        },
+        "win-arm64": {
+            "runtime.liblouis": {
+                "libLLVM.runtime.win-arm64": "3.33.0"
+            }
+        },
+        "win-x64": {
+            "runtime.liblouis": {
+                "libLLVM.runtime.win-x64": "3.33.0"
+            }
+        }
+    }
+}

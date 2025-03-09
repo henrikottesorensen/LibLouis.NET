@@ -19,26 +19,13 @@ The Liblouis software suite provides an open-source braille translator, back-tra
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="runtimes/win-x86/native/liblouis.dll" PackagePath="runtimes/win-x86/native/liblouis.dll" Pack="true">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Update="runtime.json">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
     </None>
-    <None Include="runtimes/win-x64/native/liblouis.dll" PackagePath="runtimes/win-x64/native/liblouis.dll" Pack="true">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="runtimes/linux-x86/native/liblouis.so" PackagePath="runtimes/linux-x86/native/liblouis.so" Pack="true">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>    
-    <None Include="runtimes/linux-x64/native/liblouis.so" PackagePath="runtimes/linux-x64/native/liblouis.so" Pack="true">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="runtimes/linux-arm64/native/liblouis.so" PackagePath="runtimes/linux-arm64/native/liblouis.so" Pack="true">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-
     <None Update="LICENSE">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
-  
 </Project>
