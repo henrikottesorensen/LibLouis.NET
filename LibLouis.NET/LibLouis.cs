@@ -48,6 +48,17 @@ public class LibLouis : IDisposable
 
     private string _lastLogMessage = string.Empty;
 
+    /// <summary>
+    /// Roots the delegate behind the function pointer liblouis holds.
+    /// </summary>
+    /// <remarks>
+    /// The interop stub only keeps the delegate alive for the duration of the registration call,
+    /// but liblouis keeps calling the pointer for the rest of the process's life. Without a
+    /// reference here the delegate is collected and the next native log message kills the process
+    /// with "A callback was made on a garbage collected delegate".
+    /// </remarks>
+    private readonly NativeMethods.LoggingCallback _logCallback;
+
     static LibLouis()
     {
         Instance = new LibLouis();
@@ -65,7 +76,8 @@ public class LibLouis : IDisposable
         };
 
         // Register managed log callback, so we can give reasonable exception messages.
-        NativeMethods.lou_registerLogCallback(LogCallback);
+        _logCallback = LogCallback;
+        NativeMethods.lou_registerLogCallback(_logCallback);
     }
 
     // https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/unmanaged
@@ -95,18 +107,37 @@ public class LibLouis : IDisposable
         {
             _logger = logger;
             NativeMethods.lou_setLogLevel(LogLevel.All);
-            NativeMethods.lou_registerLogCallback(LogCallback);
+            NativeMethods.lou_registerLogCallback(_logCallback);
         }
     }
 
+    /// <summary>
+    /// Called by liblouis, on a native stack.
+    /// </summary>
+    /// <remarks>
+    /// Nothing may be thrown out of here. liblouis has no way to handle a managed exception, and
+    /// letting one unwind through its frames tears the process down.
+    /// </remarks>
     private void LogCallback(LogLevel level, string message)
     {
-        Microsoft.Extensions.Logging.LogLevel l = LogLevels[level];
-        _lastLogMessage = message;
-
-        if (_logger.IsEnabled(l))
+        try
         {
-            _logger.Log(l, message);
+            _lastLogMessage = message;
+
+            // liblouis is free to introduce log levels we have no mapping for.
+            if (!LogLevels.TryGetValue(level, out Microsoft.Extensions.Logging.LogLevel l))
+            {
+                l = Microsoft.Extensions.Logging.LogLevel.Information;
+            }
+
+            if (_logger.IsEnabled(l))
+            {
+                _logger.Log(l, message);
+            }
+        }
+        catch
+        {
+            // A logger that throws must not become a native crash.
         }
     }
 
