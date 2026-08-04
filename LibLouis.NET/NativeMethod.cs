@@ -186,9 +186,16 @@ public static partial class NativeMethods
     [LibraryImport("liblouis", EntryPoint = "lou_checkTable", StringMarshalling = StringMarshalling.Utf8)]
     internal static partial int lou_checkTable(string tableList);
 
+    /// <summary>
+    /// Parses, analyzes and indexes the given tables.
+    /// </summary>
+    /// <param name="tables">
+    /// Must be NULL terminated: liblouis walks the array until it reads a null pointer, so the
+    /// final element has to be <see langword="null"/>.
+    /// </param>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_indexTables", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial void lou_indexTables(string[] tables);
+    internal static partial void lou_indexTables(string?[] tables);
 
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_findTable", StringMarshalling = StringMarshalling.Utf8)]
