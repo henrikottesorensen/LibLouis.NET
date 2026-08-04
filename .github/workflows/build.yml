@@ -159,14 +159,9 @@ jobs:
           merge-multiple: true
           path: packages
 
-        # The built-in GITHUB_TOKEN is scoped to the repository it runs in, so it can only push to
-        # that repository's owner. Pushing to the Notalib feed from a repository outside that
-        # organisation needs a personal access token with write:packages, stored as the
-        # NUGET_PUSH_TOKEN secret. The built-in token is the fallback for when the repository does
-        # live under Notalib.
       - name: Push
         run: >
           dotnet nuget push "packages/*.nupkg"
           --source https://nuget.pkg.github.com/Notalib/index.json
-          --api-key ${{ secrets.NUGET_PUSH_TOKEN || secrets.GITHUB_TOKEN }}
+          --api-key ${{ secrets.GITHUB_TOKEN }}
           --skip-duplicate
