@@ -55,22 +55,4 @@ public class IndexTablesTests
         Assert.Equal(paths, analyzed);
     }
 
-    private sealed class CollectingLogger : ILogger
-    {
-        public List<string> Messages { get; } = [];
-
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-
-        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
-
-        public void Log<TState>(
-            Microsoft.Extensions.Logging.LogLevel logLevel,
-            EventId eventId,
-            TState state,
-            Exception? exception,
-            Func<TState, Exception?, string> formatter)
-        {
-            Messages.Add(formatter(state, exception));
-        }
-    }
 }
