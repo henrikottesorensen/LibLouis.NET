@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace LibLouis.NET;
 
@@ -12,7 +13,8 @@ public static partial class NativeMethods
     /// </summary>
     /// <returns>LibLouis version.</returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
-    [LibraryImport("liblouis", EntryPoint = "lou_version", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(UTF8StringNoFreeMarshaller))]
+    [LibraryImport("liblouis", EntryPoint = "lou_version")]
+    [return: MarshalUsing(typeof(UTF8StringNoFreeMarshaller))]
     internal static partial string lou_version();
 
     /// <summary>
@@ -183,13 +185,23 @@ public static partial class NativeMethods
     [LibraryImport("liblouis", EntryPoint = "lou_registerLogCallback")]
     internal static partial void lou_registerLogCallback(LoggingCallback callback);
 
+    /// <returns>
+    /// A pointer into static storage inside liblouis, or <see langword="null"/> if the path was
+    /// never set. Must not be freed.
+    /// </returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
-    [LibraryImport("liblouis", EntryPoint = "lou_getDataPath", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial string lou_getDataPath();
+    [LibraryImport("liblouis", EntryPoint = "lou_getDataPath")]
+    [return: MarshalUsing(typeof(UTF8StringNoFreeMarshaller))]
+    internal static partial string? lou_getDataPath();
 
+    /// <returns>
+    /// A pointer into static storage inside liblouis, or <see langword="null"/> if the path was
+    /// rejected. Must not be freed.
+    /// </returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_setDataPath", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial string lou_setDataPath(string path);
+    [return: MarshalUsing(typeof(UTF8StringNoFreeMarshaller))]
+    internal static partial string? lou_setDataPath(string path);
 
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_checkTable", StringMarshalling = StringMarshalling.Utf8)]
@@ -206,9 +218,15 @@ public static partial class NativeMethods
     [LibraryImport("liblouis", EntryPoint = "lou_indexTables", StringMarshalling = StringMarshalling.Utf8)]
     internal static partial void lou_indexTables(string?[] tables);
 
+    /// <returns>
+    /// The best matching table name, or <see langword="null"/> when there is no match. liblouis
+    /// documents this as the caller's to free, but the memory comes from liblouis's own C runtime
+    /// - see <see cref="UTF8StringNoFreeMarshaller"/> for why we leak it instead.
+    /// </returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_findTable", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial string lou_findTable(string query);
+    [return: MarshalUsing(typeof(UTF8StringNoFreeMarshaller))]
+    internal static partial string? lou_findTable(string query);
 
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_compileString", StringMarshalling = StringMarshalling.Utf8)]
