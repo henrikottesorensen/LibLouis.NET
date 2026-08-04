@@ -173,9 +173,16 @@ public class LibLouis : IDisposable
     /// <param name="tables">tables must be an IEnumerable of file names.</param>
     public void IndexTables(IEnumerable<string> tables)
     {
+        ArgumentNullException.ThrowIfNull(tables);
+
+        // liblouis walks the array until it reads a null pointer, so it needs a terminator on top
+        // of the table names. Without it, it reads whatever managed memory follows the array and
+        // hands it to _lou_logMessage as a string.
+        string?[] nullTerminated = [.. tables, null];
+
         lock (_lock)
         {
-            NativeMethods.lou_indexTables(tables.ToArray());
+            NativeMethods.lou_indexTables(nullTerminated);
         }
     }
 
