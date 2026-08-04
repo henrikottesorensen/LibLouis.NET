@@ -9,7 +9,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <license type="file">LICENSE</license>
     <projectUrl>https://liblouis.io/</projectUrl>
-    <repository type="git" url="https://github.com/liblouis/liblouis" />
+    <repository type="git" url="https://github.com/notalib/LibLouis.NET" />
     <copyright>Liblouis 2010 - 2025</copyright>
     <tags>liblouis braille native</tags>
     <description>Note: Do not reference this package directly, it is pulled in by LibLouis.NET.

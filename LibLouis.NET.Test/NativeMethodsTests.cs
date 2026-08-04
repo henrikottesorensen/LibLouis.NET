@@ -115,5 +115,17 @@ public class NativeMethodsTests
         TranslatedString translated = LibLouis.Instance.Translate(tables, input, outputLength, null, null, outputPosition, inputPosition, cursorPosition, TranslationMode.Regular);
 
         Assert.Equal(expected, translated.Output);
+
+        Assert.Equal(inputPosition, translated.InputPosition);
+        Assert.Equal(outputPosition, translated.OutputPosition);
+
+        Assert.Equal('A', input[inputPosition[12]]);
+        Assert.Equal('A', input[inputPosition[13]]);
+        Assert.Equal('n', input[inputPosition[14]]);
+
+        Assert.Equal('@', expected[outputPosition[0]]);
+        Assert.Equal(' ', expected[outputPosition[6]]);
+        Assert.Equal('@', expected[outputPosition[14]]);
+        Assert.Equal('n', expected[outputPosition[15]]);
     }
 }

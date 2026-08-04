@@ -7,7 +7,7 @@
     <Authors>Nota</Authors>
     <Company>Nota</Company>
     <Title>$(AssemblyName)</Title>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/Notalib/LibLouis.NET.git</RepositoryUrl>
