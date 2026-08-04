@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>Nota</Authors>
@@ -20,8 +20,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <!-- Track the extensions packages to the target framework rather than pinning every target to
+         the net8.0 versions, so a net10.0 consumer does not drag an older set into its graph. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" Condition="'$(TargetFramework)' == 'net10.0'" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" Condition="'$(TargetFramework)' == 'net10.0'" />
     <!--
       Lower bound is the version this repository currently builds, so restore does not warn about
       a non-existent 3.0.0 (NU1603). LiblouisPackageVersion comes from Directory.Build.props.
@@ -30,10 +34,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="LICENSE">
-      <PackagePath>\</PackagePath>
-      <Pack>True</Pack>
-    </None>
+    <!--
+      Two forms on purpose. Packing a multi-targeted project runs the cross-targeting outer build,
+      which has no default None items, so Update there matches nothing and the licence silently
+      never reaches the package (NU5030). The inner builds do have the item, where a second Include
+      would be a duplicate.
+    -->
+    <None Include="LICENSE" Pack="True" PackagePath="\" Condition="'$(TargetFramework)' == ''" />
+    <None Update="LICENSE" Pack="True" PackagePath="\" Condition="'$(TargetFramework)' != ''" />
   </ItemGroup>
   
 </Project>
