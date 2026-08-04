@@ -290,13 +290,14 @@ public class LibLouis : IDisposable
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
+        TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
 
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (_lock)
         {
-            success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
+            success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
         }
 
         if (!success)
@@ -344,13 +345,14 @@ public class LibLouis : IDisposable
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
+        TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
 
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (_lock)
         {
-            success = NativeMethods.lou_translateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, mode) > 0;
+            success = NativeMethods.lou_translateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, mode) > 0;
         }
 
         if (!success)
@@ -415,13 +417,14 @@ public class LibLouis : IDisposable
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
+        TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
 
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (_lock)
         {
-            success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
+            success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
         }
 
         if (!success)
@@ -467,13 +470,14 @@ public class LibLouis : IDisposable
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
+        TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
 
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (_lock)
         {
-            success = NativeMethods.lou_backTranslateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, formtype, spacing, mode) > 0;
+            success = NativeMethods.lou_backTranslateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, mode) > 0;
         }
 
         if (!success)
@@ -518,6 +522,29 @@ public class LibLouis : IDisposable
         }
 
         return hyphens;
+    }
+
+    /// <summary>
+    /// Copy the caller's typeform values into a buffer that is safe to hand to liblouis.
+    /// </summary>
+    /// <remarks>
+    /// The typeform parameter is in/out: liblouis reads one entry per input character, but on a
+    /// successful translation it writes one entry per *output* cell. A translation that grows the
+    /// text - which the marker tables do routinely - would therefore write past the end of an
+    /// array sized to the input, corrupting the managed heap. We give liblouis a buffer big enough
+    /// for both directions and treat the caller's array as input only.
+    /// </remarks>
+    private static TypeForm[]? PrepareTypeFormBuffer(TypeForm[]? formtype, int inputLength, int outputLength)
+    {
+        if (formtype is null)
+        {
+            return null;
+        }
+
+        TypeForm[] buffer = new TypeForm[Math.Max(inputLength, outputLength) + 1];
+        formtype.AsSpan(0, Math.Min(formtype.Length, buffer.Length)).CopyTo(buffer);
+
+        return buffer;
     }
 
     /// <summary>
