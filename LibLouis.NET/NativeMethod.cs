@@ -130,13 +130,22 @@ public static partial class NativeMethods
     /// </summary>
     /// <param name="tableList">Contains a hyphenation table.</param>
     /// <param name="inbuf">length of the character string in inbuf.</param>
-    /// <param name="inlen">inlen is the length of the character string in inbuf</param>
-    /// <param name="hyphens">array of characters and must be of size inlen + 1 (to account for the NULL terminator).</param>
+    /// <param name="inlen">
+    /// The number of characters in inbuf. Unlike the translate functions, lou_hyphenate does not
+    /// stop at a NUL: it copies exactly inlen characters, so this must not count the terminator.
+    /// It must also be less than 100 (HYPHSTRING), or liblouis refuses the call.
+    /// </param>
+    /// <param name="hyphens">
+    /// Caller-allocated output buffer of at least inlen + 1 bytes. liblouis writes one ASCII
+    /// '0' / '1' / '2' per character plus a NUL terminator. It is a plain char buffer, so it must
+    /// be marshalled as a byte array - a string would pass a pointer to a pointer and liblouis
+    /// would write over the marshalling stub's own stack.
+    /// </param>
     /// <param name="mode"></param>
     /// <returns>0 if error, 1 if success.</returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_hyphenate", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial int lou_hyphenate(string tableList, byte[] inbuf, int inlen, ref string hyphens, TranslationMode mode);
+    internal static partial int lou_hyphenate(string tableList, byte[] inbuf, int inlen, byte[] hyphens, TranslationMode mode);
 
     /// <summary>
     /// This function enables you to compile a table entry on the fly at run-time. 

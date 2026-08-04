@@ -522,25 +522,40 @@ public class LibLouis : IDisposable
     /// If it does not, the function does nothing.
     /// </summary>
     /// <param name="tableList"></param>
-    /// <param name="input"></param>
+    /// <param name="input">The word to hyphenate. Must be shorter than 100 characters.</param>
     /// <param name="mode"></param>
-    /// <returns></returns>
+    /// <returns>
+    /// One character per character of <paramref name="input"/>: '1' where the word may be broken,
+    /// '0' where it may not, '2' after an existing hyphen.
+    /// </returns>
     /// <exception cref="LibLouisException"></exception>
     public string Hyphenate(IEnumerable<string> tableList, string input, TranslationMode mode)
     {
         ArgumentNullException.ThrowIfNull(tableList);
-        ArgumentNullException.ThrowIfNullOrEmpty(nameof(input));
+        ArgumentException.ThrowIfNullOrEmpty(input);
+
+        // liblouis rejects anything from HYPHSTRING characters up, and would otherwise report it
+        // as an ordinary hyphenation failure.
+        if (input.Length >= MaxHyphenationLength)
+        {
+            throw new ArgumentException(
+                $"{nameof(input)} must be shorter than {MaxHyphenationLength} characters.", nameof(input));
+        }
 
         string tables = string.Join(',', tableList);
-        string hyphens = new('\0', input.Length + 1);
+
+        // liblouis writes one flag per character plus a NUL terminator into a caller-allocated
+        // char buffer. inlen must not count the terminator: lou_hyphenate memcpy's exactly inlen
+        // characters rather than stopping at a NUL the way the translate functions do.
+        byte[] hyphens = new byte[input.Length + 1];
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
 
         bool success;
-       
+
         lock (_lock)
         {
-            success = NativeMethods.lou_hyphenate(tables, inputBuffer, input.Length + 1, ref hyphens, mode) > 0; 
+            success = NativeMethods.lou_hyphenate(tables, inputBuffer, input.Length, hyphens, mode) > 0;
         }
         
         if (!success)
@@ -548,8 +563,15 @@ public class LibLouis : IDisposable
             throw new LibLouisException($"Hyphenation failed {_lastLogMessage}");
         }
 
-        return hyphens;
+        // The flags are ASCII digits; the trailing terminator is not part of the result.
+        return Encoding.ASCII.GetString(hyphens, 0, input.Length);
     }
+
+    /// <summary>
+    /// liblouis hyphenates into a fixed 100 character buffer (HYPHSTRING) and refuses any input
+    /// that would not fit.
+    /// </summary>
+    private const int MaxHyphenationLength = 100;
 
     /// <summary>
     /// Copy the caller's typeform values into a buffer that is safe to hand to liblouis.
