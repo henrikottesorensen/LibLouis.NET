@@ -285,6 +285,11 @@ public class LibLouis : IDisposable
             throw new ArgumentException($"{nameof(outputPosition)} parameter must point to an array of integers with at least input length elements.", nameof(outputPosition));
         }
 
+        // Counts the NUL terminator, which is safe but load bearing in an unobvious way: liblouis
+        // clamps the length at the first NUL and then overwrites inlen with the number of
+        // characters it actually consumed, before it computes any position mapping. The
+        // terminator is therefore never translated and never widens a position array write.
+        // See InputLengthTests.
         int inputLength = input.Length + 1;
         int outputBufferLength = outputLength;
 
@@ -340,6 +345,11 @@ public class LibLouis : IDisposable
             throw new ArgumentException("Spacing must be the same length as input or null");
         }
 
+        // Counts the NUL terminator, which is safe but load bearing in an unobvious way: liblouis
+        // clamps the length at the first NUL and then overwrites inlen with the number of
+        // characters it actually consumed, before it computes any position mapping. The
+        // terminator is therefore never translated and never widens a position array write.
+        // See InputLengthTests.
         int inputLength = input.Length + 1;
         int outputBufferLength = outputLength;
 
@@ -412,6 +422,11 @@ public class LibLouis : IDisposable
             throw new ArgumentException($"{nameof(outputPosition)} parameter must point to an array of integers with at least input length elements.", nameof(outputPosition));
         }
 
+        // Counts the NUL terminator, which is safe but load bearing in an unobvious way: liblouis
+        // clamps the length at the first NUL and then overwrites inlen with the number of
+        // characters it actually consumed, before it computes any position mapping. The
+        // terminator is therefore never translated and never widens a position array write.
+        // See InputLengthTests.
         int inputLength = input.Length + 1;
         int outputBufferLength = outputLength;
 
@@ -465,6 +480,11 @@ public class LibLouis : IDisposable
             throw new ArgumentException("Spacing must be the same length as input or null");
         }
 
+        // Counts the NUL terminator, which is safe but load bearing in an unobvious way: liblouis
+        // clamps the length at the first NUL and then overwrites inlen with the number of
+        // characters it actually consumed, before it computes any position mapping. The
+        // terminator is therefore never translated and never widens a position array write.
+        // See InputLengthTests.
         int inputLength = input.Length + 1;
         int outputBufferLength = outputLength;
 
