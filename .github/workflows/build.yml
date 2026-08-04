@@ -1,0 +1,172 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  # Native binaries for the Linux and Windows RIDs, plus the runtime.liblouis metapackage.
+  # Everything happens inside the container so a local ./build.sh produces identical packages.
+  native-linux:
+    name: native (linux + windows RIDs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cross-compile and pack
+        env:
+          DOCKER_BUILDKIT: '1'
+        run: ./build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-native-linux
+          path: packages/*.nupkg
+          if-no-files-found: error
+
+  # Native binaries for the macOS RIDs. Needs a macOS host, so it cannot go in the container.
+  native-macos:
+    name: native (macOS RIDs)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build and pack
+        run: sh ./build/build_runtime_macos_packages.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-native-macos
+          path: packages/*.nupkg
+          if-no-files-found: error
+
+  # The end-to-end check that runtime package selection actually works.
+  #
+  # The test project reaches runtime.liblouis through a project reference to LibLouis.NET, so
+  # restore pulls in all seven per-RID packages from the local feed. Each runner then has to resolve
+  # the one native binary matching the RID it is running on before any P/Invoke can succeed. A
+  # mistake in the package layout or in the metapackage dependencies shows up here as a failing
+  # test rather than in a consumer's application.
+  test:
+    name: test (${{ matrix.os }})
+    needs: [native-linux, native-macos]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Collect runtime packages into a local feed
+        uses: actions/download-artifact@v4
+        with:
+          pattern: packages-native-*
+          merge-multiple: true
+          path: local-feed
+
+      # The da-dk test tables `include` general tables such as braille-patterns.cti that ship in the
+      # upstream release, so they have to be staged into LibLouis.NET.Tables before the tests run.
+        # shell: bash rather than the default, so this step also works on the Windows runner, where
+        # the default shell is PowerShell and `sh` is not on PATH. GitHub maps bash to Git Bash.
+      - name: Stage upstream tables
+        shell: bash
+        run: ./build/stage_tables.sh
+
+      - name: Test
+        run: >
+          dotnet test LibLouis.NET.Test/LibLouis.NET.Test.csproj
+          --configuration Release
+          -p:RestoreAdditionalProjectSources=${{ github.workspace }}/local-feed
+
+  # Managed packages. Split from native-linux because building LibLouis.NET resolves
+  # runtime.liblouis, which depends on the macOS packages the container cannot produce.
+  managed:
+    name: managed packages
+    needs: [native-linux, native-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Collect runtime packages into a local feed
+        uses: actions/download-artifact@v4
+        with:
+          pattern: packages-native-*
+          merge-multiple: true
+          path: local-feed
+
+      - name: Build and pack
+        env:
+          NUGET_LOCAL_FEED: ${{ github.workspace }}/local-feed
+          # The test job already covers this, on three operating systems.
+          SKIP_TESTS: '1'
+        run: sh ./build/build_managed_packages.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-managed
+          path: packages/*.nupkg
+          if-no-files-found: error
+
+  # Publishing is gated on a tag, so every push and pull request gets built and tested without
+  # anything reaching the feed.
+  #
+  # Note that the repository carries two independent version streams: the runtime packages are
+  # versioned after the upstream liblouis release (Directory.Build.props), while LibLouis.NET has
+  # its own version. A tag therefore does not correspond to a single package version, and
+  # --skip-duplicate makes re-pushing an unchanged runtime package a no-op.
+  publish:
+    name: publish to GitHub Packages
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [native-linux, native-macos, test, managed]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: packages-*
+          merge-multiple: true
+          path: packages
+
+        # The built-in GITHUB_TOKEN is scoped to the repository it runs in, so it can only push to
+        # that repository's owner. Pushing to the Notalib feed from a repository outside that
+        # organisation needs a personal access token with write:packages, stored as the
+        # NUGET_PUSH_TOKEN secret. The built-in token is the fallback for when the repository does
+        # live under Notalib.
+      - name: Push
+        run: >
+          dotnet nuget push "packages/*.nupkg"
+          --source https://nuget.pkg.github.com/Notalib/index.json
+          --api-key ${{ secrets.NUGET_PUSH_TOKEN || secrets.GITHUB_TOKEN }}
+          --skip-duplicate

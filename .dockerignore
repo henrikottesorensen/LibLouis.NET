@@ -1,0 +1,16 @@
+# Keep the build context to just the sources the container needs.
+#
+# Copying host state in would make the container build non-reproducible, and worse, a native binary
+# left over from a host build could end up packed if a target inside the container failed to
+# rebuild it. The container fetches and unpacks the upstream release itself.
+.git
+.github
+.idea
+.vs
+**/bin
+**/obj
+upstream
+packages
+packages-docker
+runtime.*.liblouis/runtimes
+LibLouis.NET.Tables/tables
