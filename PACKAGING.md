@@ -134,6 +134,36 @@ Worth re-checking after a toolchain or upstream bump. The binaries should import
 llvm-readobj --coff-imports liblouis.dll | grep Name:
 ```
 
+### Post-build verification
+
+Every native binary is inspected before it is packed, by `build/verify_native_binary.sh`, called
+from `pack_runtime_package`. A binary that fails never becomes a package.
+
+| Check | Why |
+| --- | --- |
+| Architecture matches the RID | A mis-targeted binary restores fine and never loads. |
+| Every P/Invoke symbol is exported | Otherwise `EntryPointNotFoundException` at first use. |
+| No dependency outside an allowlist | Catches the `libgcc_s_dw2-1.dll` class of bug. |
+| Max `GLIBC_` version within the floor | The floor decides which distributions can consume the packages, and it is a property of the build image. |
+
+The expected symbols are read out of the `EntryPoint` attributes in `LibLouis.NET/NativeMethod.cs`
+rather than listed in the script, so the check cannot drift away from what the wrapper actually
+imports.
+
+The glibc floor is `MAX_GLIBC` in the script, currently 2.34, which covers RHEL 9, Debian 12 and
+Ubuntu 22.04 and later. `linux-x86` sits exactly on it. Raising it drops support for older
+distributions, so it should be a deliberate decision rather than a side effect of bumping the base
+image.
+
+Run it by hand against an extracted package to audit a published one:
+
+```bash
+sh build/verify_native_binary.sh win-x64 runtimes/win-x64/native/liblouis.dll
+```
+
+`SKIP_NATIVE_VERIFICATION=1` bypasses it, which is only reasonable when deliberately building
+something the checks were not written for.
+
 ### Parallel make
 
 The Linux and macOS targets build with `make -j`. The Windows targets deliberately do not.

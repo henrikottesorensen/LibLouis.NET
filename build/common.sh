@@ -88,8 +88,18 @@ stage_tables() {
 
 # Pack a per-RID runtime package. The native binary must already be staged into
 # runtime.<rid>.liblouis/runtimes/<rid>/native/, which RuntimePackage.props verifies.
+#
+# The binary is inspected before packing rather than after, so a bad build never becomes a package
+# at all. Set SKIP_NATIVE_VERIFICATION=1 to bypass, which is only reasonable when deliberately
+# building something the checks are not written for.
 pack_runtime_package() {
     rid=$1
+
+    if [ -z "${SKIP_NATIVE_VERIFICATION:-}" ]; then
+        binary=$(find "$REPO_ROOT/runtime.$rid.liblouis/runtimes/$rid/native" -type f | head -n 1)
+        sh "$REPO_ROOT/build/verify_native_binary.sh" "$rid" "$binary"
+    fi
+
     mkdir -p "$PACKAGE_OUTPUT_DIR"
     dotnet pack "$REPO_ROOT/runtime.$rid.liblouis/runtime.$rid.liblouis.csproj" \
         --configuration Release \

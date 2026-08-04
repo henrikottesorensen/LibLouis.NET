@@ -28,6 +28,9 @@ RUN apt-get update && \
         curl \
         m4 \
         xz-utils \
+        # build/verify_native_binary.sh reads PE files with llvm-readobj, because binutils cannot
+        # read aarch64 PE. readelf and nm for the ELF checks come with build-essential.
+        llvm \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PACKAGE_OUTPUT_DIR=/packages
