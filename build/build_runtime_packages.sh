@@ -75,10 +75,23 @@ build_runtime_nuget() {
             *) jobs=$(cpu_count) ;;
         esac
 
+        # Only the library is packaged, so only the library is built. The tree also contains
+        # tools/, tables/, man/, doc/, tests/, python/ and windows/, none of which reach a package.
+        #
+        # This is not just speed. A failure in tools/ does not stop the top level make - the
+        # win-arm64 build once emitted eight link errors there and still exited 0, which buried a
+        # real problem in the log. Building only what is shipped means any failure is about the
+        # thing being shipped. It also removes libtool's "could not determine the host path"
+        # warnings, which come from wrapper scripts generated around uninstalled executables.
+        #
+        # gnulib first and explicitly: liblouis links against gnulib/libgnu.la, and make will not
+        # build a sibling directory on demand - it stops with "No rule to make target".
         if [ -n "$extra_cflags" ]; then
-            make -j"$jobs" CFLAGS="$extra_cflags"
+            make -j"$jobs" -C gnulib CFLAGS="$extra_cflags"
+            make -j"$jobs" -C liblouis CFLAGS="$extra_cflags"
         else
-            make -j"$jobs"
+            make -j"$jobs" -C gnulib
+            make -j"$jobs" -C liblouis
         fi
 
         target_dir="$REPO_ROOT/runtime.$rid.liblouis/runtimes/$rid/native"
