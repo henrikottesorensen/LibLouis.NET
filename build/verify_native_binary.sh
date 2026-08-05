@@ -52,32 +52,61 @@ if [ ! -f "$binary" ]; then
     exit 1
 fi
 
-# llvm ships its tools with a version suffix on Debian and Ubuntu, and unsuffixed in llvm-mingw.
+# Finds the first of several interchangeable tools. Takes them in preference order, because the
+# right one depends on the platform: reading ELF on macOS needs llvm-nm, since BSD nm has no -D.
+#
+# llvm ships its tools with a version suffix on Debian and Ubuntu, unsuffixed in llvm-mingw, and
+# under a keg-only prefix from Homebrew.
 find_tool() {
-    if command -v "$1" >/dev/null 2>&1; then
-        command -v "$1"
-        return 0
-    fi
-    for candidate in $(ls /usr/bin/"$1"-* /usr/lib/llvm-*/bin/"$1" 2>/dev/null | sort -Vr); do
-        if [ -x "$candidate" ]; then
-            echo "$candidate"
+    for name in "$@"; do
+        if command -v "$name" >/dev/null 2>&1; then
+            command -v "$name"
             return 0
         fi
     done
+
+    for name in "$@"; do
+        for candidate in $(ls \
+                /usr/bin/"$name"-* \
+                /usr/lib/llvm-*/bin/"$name" \
+                /opt/homebrew/opt/llvm/bin/"$name" \
+                /opt/homebrew/opt/binutils/bin/"$name" \
+                /usr/local/opt/llvm/bin/"$name" \
+                /usr/local/opt/binutils/bin/"$name" 2>/dev/null | sort -Vr); do
+            if [ -x "$candidate" ]; then
+                echo "$candidate"
+                return 0
+            fi
+        done
+    done
+
     return 1
 }
 
 # Every EntryPoint the managed wrapper P/Invokes. If the wrapper gains a function and the native
 # library does not export it, that is a runtime EntryPointNotFoundException, so catch it here.
-expected_symbols() {
-    grep -o 'EntryPoint = "[^"]*"' "$NATIVE_METHODS" | sed 's/.*"\(.*\)"/\1/' | sort -u
-}
+# Resolved once, here in the main shell. Doing this inside a function called through command
+# substitution would run it in a subshell, where exit cannot stop the script: the error would print
+# and every symbol check would still pass against an empty list.
+if [ ! -f "$NATIVE_METHODS" ]; then
+    echo "verify_native_binary: cannot read $NATIVE_METHODS" >&2
+    exit 1
+fi
+
+EXPECTED_SYMBOLS=$(grep -o 'EntryPoint = "[^"]*"' "$NATIVE_METHODS" | sed 's/.*"\(.*\)"/\1/' | sort -u)
+
+if [ -z "$EXPECTED_SYMBOLS" ]; then
+    echo "verify_native_binary: found no EntryPoint attributes in $NATIVE_METHODS" >&2
+    exit 1
+fi
+
+EXPECTED_SYMBOL_COUNT=$(printf '%s\n' "$EXPECTED_SYMBOLS" | wc -l | tr -d ' ')
 
 echo "verifying $rid: $binary"
 
 case "$rid" in
     linux-*)
-        readelf=$(find_tool readelf) || { echo "readelf not found" >&2; exit 1; }
+        readelf=$(find_tool llvm-readelf readelf) || { echo "readelf not found" >&2; exit 1; }
 
         case "$rid" in
             linux-x86)   want_class=ELF32; want_machine="Intel 80386" ;;
@@ -94,11 +123,12 @@ case "$rid" in
         fi
 
         missing=""
-        exports=$("$(find_tool nm)" -D --defined-only "$binary" | awk '$2 == "T" { print $3 }')
-        for symbol in $(expected_symbols); do
+        nm=$(find_tool llvm-nm nm) || { echo "nm not found" >&2; exit 1; }
+        exports=$("$nm" -D --defined-only "$binary" | awk '$2 == "T" { print $3 }')
+        for symbol in $EXPECTED_SYMBOLS; do
             echo "$exports" | grep -qx "$symbol" || missing="$missing $symbol"
         done
-        [ -z "$missing" ] && ok "all $(expected_symbols | wc -l | tr -d ' ') P/Invoke symbols exported" \
+        [ -z "$missing" ] && ok "all $EXPECTED_SYMBOL_COUNT P/Invoke symbols exported" \
                           || fail "not exported:$missing"
 
         # ld-linux is the loader, not a library that has to be shipped.
@@ -137,10 +167,10 @@ case "$rid" in
 
         missing=""
         exports=$("$readobj" --coff-exports "$binary" 2>/dev/null | sed -n 's/.*Name: \(.*\)/\1/p')
-        for symbol in $(expected_symbols); do
+        for symbol in $EXPECTED_SYMBOLS; do
             echo "$exports" | grep -qx "$symbol" || missing="$missing $symbol"
         done
-        [ -z "$missing" ] && ok "all $(expected_symbols | wc -l | tr -d ' ') P/Invoke symbols exported" \
+        [ -z "$missing" ] && ok "all $EXPECTED_SYMBOL_COUNT P/Invoke symbols exported" \
                           || fail "not exported:$missing"
 
         # Anything outside this list has to ship with the package, and nothing else does.
@@ -166,10 +196,10 @@ case "$rid" in
         missing=""
         # Mach-O prefixes symbols with an underscore.
         exports=$(nm -gU "$binary" | awk '$2 == "T" { print $3 }' | sed 's/^_//')
-        for symbol in $(expected_symbols); do
+        for symbol in $EXPECTED_SYMBOLS; do
             echo "$exports" | grep -qx "$symbol" || missing="$missing $symbol"
         done
-        [ -z "$missing" ] && ok "all $(expected_symbols | wc -l | tr -d ' ') P/Invoke symbols exported" \
+        [ -z "$missing" ] && ok "all $EXPECTED_SYMBOL_COUNT P/Invoke symbols exported" \
                           || fail "not exported:$missing"
 
         # The first otool -L line is the library's own install name, not a dependency.

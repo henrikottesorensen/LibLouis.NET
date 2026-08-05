@@ -161,6 +161,11 @@ Run it by hand against an extracted package to audit a published one:
 sh build/verify_native_binary.sh win-x64 runtimes/win-x64/native/liblouis.dll
 ```
 
+It needs tools that can read the format being checked. The container has them. On macOS,
+`brew install llvm` covers all three formats, since llvm-readelf, llvm-nm and llvm-readobj read ELF,
+PE and Mach-O alike; the script finds them under Homebrew's keg-only prefix. Without that, only the
+macOS RIDs can be checked locally, because BSD nm has no -D and cannot read ELF.
+
 `SKIP_NATIVE_VERIFICATION=1` bypasses it, which is only reasonable when deliberately building
 something the checks were not written for.
 

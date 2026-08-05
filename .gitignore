@@ -15,3 +15,6 @@ runtime.*.liblouis/runtimes/
 
 # Rider / ReSharper per-user settings
 *.DotSettings.user
+
+# Worktrees created by spawned Claude Code sessions
+.claude/worktrees/
