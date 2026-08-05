@@ -387,6 +387,7 @@ public class LibLouis
             CursorPosition = cursorPosition,
             InputPosition = inputPosition,
             OutputPosition = outputPosition,
+            OutputDots78 = ExtractOutputDots78(typeFormBuffer, outputLength),
         };
     }
 
@@ -660,6 +661,33 @@ public class LibLouis
         formtype.AsSpan(0, Math.Min(formtype.Length, buffer.Length)).CopyTo(buffer);
 
         return buffer;
+    }
+
+    /// <summary>
+    /// Reads the per-cell dot 7/8 information liblouis wrote into the scratch typeform buffer.
+    /// </summary>
+    /// <remarks>
+    /// The write-back half of <see cref="PrepareTypeFormBuffer"/>: on a successful forward
+    /// translation liblouis stores the ASCII character '8' in the slot of every output cell that
+    /// contains dot 7 or dot 8, and '0' otherwise (lou_translateString.c:1330). Those are
+    /// characters smuggled through a formtype array, not TypeForm flag values, which is why this
+    /// converts to booleans instead of exposing the buffer.
+    /// </remarks>
+    private static bool[]? ExtractOutputDots78(TypeForm[]? typeFormBuffer, int outputLength)
+    {
+        if (typeFormBuffer is null)
+        {
+            return null;
+        }
+
+        bool[] dots = new bool[outputLength];
+
+        for (int k = 0; k < outputLength; k++)
+        {
+            dots[k] = typeFormBuffer[k] == (TypeForm)'8';
+        }
+
+        return dots;
     }
 
     /// <summary>
