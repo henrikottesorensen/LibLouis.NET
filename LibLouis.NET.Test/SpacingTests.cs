@@ -15,7 +15,7 @@ public class SpacingTests
 {
     private static readonly string[] Tables =
         new[] { "da-dk-braillo.dis", "da-dk-g26.ctb" }
-            .Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t))
+            .Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nota-tables", t))
             .ToArray();
 
     private static TranslatedString Translate(string input, string? spacing, int outputLength)
@@ -79,7 +79,7 @@ public class SpacingTests
 
         string[] markerTables =
             new[] { "da-dk-braillo.dis", "da-dk-g16-markers.ctb" }
-                .Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t))
+                .Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nota-tables", t))
                 .ToArray();
 
         TypeForm[] formtype = new TypeForm[input.Length];

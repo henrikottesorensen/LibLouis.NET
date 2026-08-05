@@ -24,7 +24,7 @@ public class ShutdownTests
     private static readonly string[] Tables = ["da-dk-braillo.dis", "da-dk-g26.ctb"];
 
     private static string[] TablePaths() =>
-        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t))];
+        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nota-tables", t))];
 
     private static FieldInfo ShutDownField =>
         typeof(LibLouis).GetField("_shutDown", BindingFlags.NonPublic | BindingFlags.Static)

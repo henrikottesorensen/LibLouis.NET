@@ -16,7 +16,7 @@ public unsafe class UTF8StringNoFreeMarshallerTests
     [Theory]
     [InlineData("")]
     [InlineData("a")]
-    [InlineData("tables/da-dk-g26.ctb")]
+    [InlineData("nota-tables/da-dk-g26.ctb")]
     [InlineData("Første linje")]      // multi-byte UTF-8
     [InlineData("\U0001D11E")]        // non-BMP, surrogate pair on the managed side
     public void ConvertToManaged_ReadsNulTerminatedUtf8(string value)

@@ -18,7 +18,7 @@ public unsafe class LiblouisHeapTests
     private static readonly string[] Tables = ["da-dk-g26.ctb", "da-dk-g16-markers.ctb"];
 
     private static string[] TablePaths() =>
-        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t))];
+        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nota-tables", t))];
 
     // RVAs in the synthetic image.
     private const int ImportTable = 0x200;

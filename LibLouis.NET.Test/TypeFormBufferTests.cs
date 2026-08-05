@@ -24,7 +24,7 @@ public class TypeFormBufferTests
     private static readonly string[] Tables = ["da-dk-braillo.dis", "da-dk-g16-markers.ctb"];
 
     private static string[] TablePaths() =>
-        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t))];
+        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nota-tables", t))];
 
     /// <summary>
     /// Documents the native contract that makes the overrun possible, independent of the wrapper:
