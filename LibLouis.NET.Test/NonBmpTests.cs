@@ -31,7 +31,7 @@ public class NonBmpTests
     /// </summary>
     private static int ExpectedCells(string value)
     {
-        return NativeShim.lou_charSize() == 4
+        return SafeNativeMethods.lou_charSize() == 4
             ? value.EnumerateRunes().Count()
             : value.Length;
     }

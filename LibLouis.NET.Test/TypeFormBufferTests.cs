@@ -34,7 +34,7 @@ public class TypeFormBufferTests
     [Fact]
     public void Native_WritesOneTypeformEntryPerOutputCell()
     {
-        int charSize = NativeShim.lou_charSize();
+        int charSize = SafeNativeMethods.lou_charSize();
         Encoding encoder = charSize == 4 ? Encoding.UTF32 : Encoding.Unicode;
 
         int inputLength = Input.Length;
@@ -53,8 +53,15 @@ public class TypeFormBufferTests
         int inLen = inputLength;
         int outLen = outputLength;
 
-        int result = NativeShim.lou_translateString(
-            string.Join(',', TablePaths()), inputBuffer, ref inLen, outputBuffer, ref outLen, typeform, null, 0);
+        int result = SafeNativeMethods.lou_translateString(
+            SafeNativeMethods.Utf8(string.Join(',', TablePaths())),
+            inputBuffer,
+            ref inLen,
+            outputBuffer,
+            ref outLen,
+            typeform,
+            null,
+            0);
 
         Assert.NotEqual(0, result);
         Assert.Equal(ExpectedOutput, encoder.GetString(outputBuffer, 0, outLen * charSize));
