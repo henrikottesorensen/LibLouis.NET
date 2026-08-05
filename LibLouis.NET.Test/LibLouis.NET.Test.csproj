@@ -18,6 +18,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" Condition="'$(TargetFramework)' == 'net10.0'" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -30,6 +31,15 @@
   </ItemGroup>
   
   <ItemGroup>
+    <!--
+      The upstream braille specs, copied verbatim from the release tarball. They are checked against
+      tables/, which holds the upstream set: Nota's own tables live in nota-tables/ and no longer
+      shadow it.
+    -->
+    <Content Include="braille-specs/*.yaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+
     <!--
       Nota's tables go to their own output directory. 22 of the 30 share a file name with an
       upstream table and differ from it - five of them among the seven the tests load, see
