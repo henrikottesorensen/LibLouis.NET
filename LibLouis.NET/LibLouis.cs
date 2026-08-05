@@ -27,7 +27,13 @@ public class LibLouis : IDisposable
     /// <summary>
     /// LibLouis is *NOT* thread safe, so we'll have to use a lock to avoid concurrrent access to native liblouis calls.
     /// </summary>
-    private readonly object _lock;
+    /// <remarks>
+    /// Static, and shared with <see cref="Logging"/>: the state it protects belongs to the native
+    /// library, not to this instance, so every native call in the assembly has to serialise on the
+    /// same object. Monitor is reentrant, so a logger that calls back in while liblouis is logging
+    /// does not deadlock.
+    /// </remarks>
+    internal static readonly object NativeLock = new();
 
     /// <summary>
     /// LibLouis can currently use either UCS-4 (1:1 mapping of UTF-32), or UCS-2 (WTF-16 without surrogate pairs),
@@ -66,7 +72,8 @@ public class LibLouis : IDisposable
 
     private LibLouis()
     {
-        _lock = new object();
+        // unlocked: the type initializer runs single threaded, and no other thread can hold a
+        // reference to the singleton until it has finished, so there is nothing to race with.
         CharacterSize = NativeMethods.lou_charSize();
         LibLouisStringEncoder = CharacterSize switch
         {
@@ -75,8 +82,10 @@ public class LibLouis : IDisposable
             _ => throw new NotImplementedException($"Liblouis is a character size of {CharacterSize}!?"),
         };
 
-        // Register managed log callback, so we can give reasonable exception messages.
         _logCallback = LogCallback;
+
+        // Register managed log callback, so we can give reasonable exception messages.
+        // unlocked: same reason - still inside the type initializer.
         NativeMethods.lou_registerLogCallback(_logCallback);
     }
 
@@ -107,7 +116,7 @@ public class LibLouis : IDisposable
 
         // Deliberately usable after disposal: neither call touches anything lou_free released,
         // and being able to attach a logger while shutting down is worth more than the symmetry.
-        lock (_lock)
+        lock (NativeLock)
         {
             _logger = logger;
             NativeMethods.lou_setLogLevel(LogLevel.All);
@@ -151,12 +160,18 @@ public class LibLouis : IDisposable
     /// <summary>
     /// Returns version number of the native liblouis library.
     /// </summary>
+    /// <remarks>
+    /// Readable after disposal: lou_version returns a compile-time constant and touches nothing
+    /// lou_free released, and version information is worth having while diagnosing a shutdown.
+    /// </remarks>
     public string Version
     {
         get
         {
-            string version = NativeMethods.lou_version();
-            return version;
+            lock (NativeLock)
+            {
+                return NativeMethods.lou_version();
+            }
         }
     }
 
@@ -168,7 +183,7 @@ public class LibLouis : IDisposable
     {
         get
         {
-            lock (_lock)
+            lock (NativeLock)
             {
                 ThrowIfDisposed();
                 return NativeMethods.lou_getDataPath();
@@ -177,7 +192,7 @@ public class LibLouis : IDisposable
         set
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(value));
-            lock (_lock)
+            lock (NativeLock)
             {
                 ThrowIfDisposed();
                 NativeMethods.lou_setDataPath(value);
@@ -201,7 +216,7 @@ public class LibLouis : IDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(query, nameof(query));
 
-        lock (_lock)
+        lock (NativeLock)
         {
             ThrowIfDisposed();
             return NativeMethods.lou_findTable(query);
@@ -221,7 +236,7 @@ public class LibLouis : IDisposable
         // hands it to _lou_logMessage as a string.
         string?[] nullTerminated = [.. tables, null];
 
-        lock (_lock)
+        lock (NativeLock)
         {
             ThrowIfDisposed();
             NativeMethods.lou_indexTables(nullTerminated);
@@ -245,7 +260,7 @@ public class LibLouis : IDisposable
         string tables = string.Join(',', tableList);
         bool success;
 
-        lock (_lock)
+        lock (NativeLock)
         {
             ThrowIfDisposed();
             success = NativeMethods.lou_dotsToChar(tables, inputBuffer, outputBuffer, length, TranslationMode.Regular) > 0;
@@ -277,7 +292,7 @@ public class LibLouis : IDisposable
 
         bool success;
 
-        lock (_lock)
+        lock (NativeLock)
         {
             ThrowIfDisposed();
             success = NativeMethods.lou_charToDots(tables, inputBuffer, outputBuffer, length, TranslationMode.Regular) > 0;
@@ -352,7 +367,7 @@ public class LibLouis : IDisposable
         string tables = string.Join(',', tableList);
         bool success;
 
-        lock (_lock)
+        lock (NativeLock)
         {
             ThrowIfDisposed();
             success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
@@ -411,7 +426,7 @@ public class LibLouis : IDisposable
         string tables = string.Join(',', tableList);
         bool success;
 
-        lock (_lock)
+        lock (NativeLock)
         {
             ThrowIfDisposed();
             success = NativeMethods.lou_translateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, mode) > 0;
@@ -487,7 +502,7 @@ public class LibLouis : IDisposable
         string tables = string.Join(',', tableList);
         bool success;
 
-        lock (_lock)
+        lock (NativeLock)
         {
             ThrowIfDisposed();
             success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
@@ -544,7 +559,7 @@ public class LibLouis : IDisposable
         string tables = string.Join(',', tableList);
         bool success;
 
-        lock (_lock)
+        lock (NativeLock)
         {
             ThrowIfDisposed();
             success = NativeMethods.lou_backTranslateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, mode) > 0;
@@ -600,7 +615,7 @@ public class LibLouis : IDisposable
 
         bool success;
 
-        lock (_lock)
+        lock (NativeLock)
         {
             ThrowIfDisposed();
             success = NativeMethods.lou_hyphenate(tables, inputBuffer, length, hyphens, mode) > 0;
@@ -715,7 +730,7 @@ public class LibLouis : IDisposable
     /// </remarks>
     protected virtual void Dispose(bool disposing)
     {
-        lock (_lock)
+        lock (NativeLock)
         {
             if (disposedValue)
             {

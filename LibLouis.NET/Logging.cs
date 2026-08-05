@@ -2,6 +2,11 @@
 
 namespace LibLouis.NET;
 
+/// <remarks>
+/// These change the same global liblouis state that <see cref="LibLouis"/> uses, so they take the
+/// same lock. Setting the callback or the log level while another thread is inside a translation
+/// is otherwise an unsynchronised write to state liblouis reads as it logs.
+/// </remarks>
 public static class Logging
 {
     /// <summary>
@@ -14,8 +19,11 @@ public static class Logging
     {
         ArgumentNullException.ThrowIfNull(value);
 
-        _callback = value;
-        NativeMethods.lou_registerLogCallback(_callback);
+        lock (LibLouis.NativeLock)
+        {
+            _callback = value;
+            NativeMethods.lou_registerLogCallback(_callback);
+        }
     }
 
     private static LogLevel _logLevel = LogLevel.Off;
@@ -24,12 +32,18 @@ public static class Logging
     {
         get
         {
-            return _logLevel;
+            lock (LibLouis.NativeLock)
+            {
+                return _logLevel;
+            }
         }
         set
         {
-            _logLevel = value;
-            NativeMethods.lou_setLogLevel(value);
+            lock (LibLouis.NativeLock)
+            {
+                _logLevel = value;
+                NativeMethods.lou_setLogLevel(value);
+            }
         }
     }
 
