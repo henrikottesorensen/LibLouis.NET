@@ -8,7 +8,7 @@ using System.Text;
 
 namespace LibLouis.NET;
 
-public class LibLouis : IDisposable
+public class LibLouis
 {
     /// <summary>
     /// LibLouis loglevels to ILogger logLevels table.
@@ -92,14 +92,17 @@ public class LibLouis : IDisposable
     // Deliberately no finalizer. lou_free tears down state that is global to the process, while a
     // finalizer runs per managed instance: in a collectible AssemblyLoadContext it would free the
     // tables of every other context still using liblouis, from the finalizer thread, outside the
-    // lock. Nothing here owns a handle that needs releasing if the caller forgets to dispose.
+    // lock. Nothing here owns a handle that leaks if Shutdown is never called.
 
     private ILogger _logger = NullLogger.Instance;
 
     /// <summary>
-    /// Read by the guards without the lock, written by <see cref="Dispose(bool)"/> under it.
+    /// Read by the guards without the lock, written by <see cref="Shutdown"/> under it.
     /// </summary>
-    private volatile bool disposedValue;
+    /// <remarks>
+    /// Static because what it tracks is the state of the native library, not of this instance.
+    /// </remarks>
+    private static volatile bool _shutDown;
 
     /// <summary>
     /// ILogger instance LibLouis will log to.
@@ -185,7 +188,7 @@ public class LibLouis : IDisposable
         {
             lock (NativeLock)
             {
-                ThrowIfDisposed();
+                ThrowIfShutDown();
                 return NativeMethods.lou_getDataPath();
             }
         }
@@ -194,7 +197,7 @@ public class LibLouis : IDisposable
             ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(value));
             lock (NativeLock)
             {
-                ThrowIfDisposed();
+                ThrowIfShutDown();
                 NativeMethods.lou_setDataPath(value);
             }
         }
@@ -218,7 +221,7 @@ public class LibLouis : IDisposable
 
         lock (NativeLock)
         {
-            ThrowIfDisposed();
+            ThrowIfShutDown();
             return NativeMethods.lou_findTable(query);
         }
     }
@@ -238,7 +241,7 @@ public class LibLouis : IDisposable
 
         lock (NativeLock)
         {
-            ThrowIfDisposed();
+            ThrowIfShutDown();
             NativeMethods.lou_indexTables(nullTerminated);
         }
     }
@@ -262,7 +265,7 @@ public class LibLouis : IDisposable
 
         lock (NativeLock)
         {
-            ThrowIfDisposed();
+            ThrowIfShutDown();
             success = NativeMethods.lou_dotsToChar(tables, inputBuffer, outputBuffer, length, TranslationMode.Regular) > 0;
         }
 
@@ -294,7 +297,7 @@ public class LibLouis : IDisposable
 
         lock (NativeLock)
         {
-            ThrowIfDisposed();
+            ThrowIfShutDown();
             success = NativeMethods.lou_charToDots(tables, inputBuffer, outputBuffer, length, TranslationMode.Regular) > 0;
         }
 
@@ -369,7 +372,7 @@ public class LibLouis : IDisposable
 
         lock (NativeLock)
         {
-            ThrowIfDisposed();
+            ThrowIfShutDown();
             success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
         }
 
@@ -428,7 +431,7 @@ public class LibLouis : IDisposable
 
         lock (NativeLock)
         {
-            ThrowIfDisposed();
+            ThrowIfShutDown();
             success = NativeMethods.lou_translateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, mode) > 0;
         }
 
@@ -504,7 +507,7 @@ public class LibLouis : IDisposable
 
         lock (NativeLock)
         {
-            ThrowIfDisposed();
+            ThrowIfShutDown();
             success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
         }
 
@@ -561,7 +564,7 @@ public class LibLouis : IDisposable
 
         lock (NativeLock)
         {
-            ThrowIfDisposed();
+            ThrowIfShutDown();
             success = NativeMethods.lou_backTranslateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, mode) > 0;
         }
 
@@ -617,7 +620,7 @@ public class LibLouis : IDisposable
 
         lock (NativeLock)
         {
-            ThrowIfDisposed();
+            ThrowIfShutDown();
             success = NativeMethods.lou_hyphenate(tables, inputBuffer, length, hyphens, mode) > 0;
         }
 
@@ -711,44 +714,54 @@ public class LibLouis : IDisposable
     /// </summary>
     /// <remarks>
     /// Called from inside the lock, immediately before the native call. Checking on the way in
-    /// instead would leave a window for Dispose to free the tables between the check and the call.
+    /// instead would leave a window for Shutdown to free the tables between check and call.
+    ///
+    /// Not ObjectDisposedException: this type is not disposable, and "cannot access a disposed
+    /// object" would send the reader looking for a Dispose call that does not exist.
     /// </remarks>
-    private void ThrowIfDisposed()
+    private static void ThrowIfShutDown()
     {
-        ObjectDisposedException.ThrowIf(disposedValue, this);
+        if (_shutDown)
+        {
+            throw new InvalidOperationException(
+                "liblouis has been shut down. LibLouis.Shutdown() frees state that is global to "
+                + "the process and cannot be undone.");
+        }
     }
 
     /// <summary>
-    /// Frees everything liblouis has allocated.
+    /// Frees everything liblouis has allocated. Final: there is no way back.
     /// </summary>
     /// <remarks>
-    /// This is process-global teardown, not the release of a per-instance resource: lou_free
-    /// walks and frees the translation and display table chains that every caller shares. It
-    /// therefore takes the same lock as every other native call - freeing those chains while
-    /// another thread is translating is a use-after-free, which shows up as anything from a
-    /// nonsense "no mapping for dot pattern" error to a crash.
+    /// Deliberately a static method rather than IDisposable. lou_free walks and frees the
+    /// translation and display table chains, which are global to the process, so this is teardown
+    /// for the whole application rather than the release of a resource one caller owns. Exposing
+    /// it as IDisposable invited <c>using (LibLouis.Instance)</c>, which reads as ordinary
+    /// cleanup and would leave every other consumer in the process unable to translate.
+    ///
+    /// Only worth calling when you need the tables released before the process exits - checking
+    /// for leaks, say. Normal applications should not call it at all: liblouis caches compiled
+    /// tables per table list rather than per call, so nothing accumulates, and process exit
+    /// reclaims it anyway.
+    ///
+    /// Takes the same lock as every other native call. Freeing those chains while another thread
+    /// is translating is a use-after-free, which shows up as anything from a nonsense
+    /// "no mapping for dot pattern" error to a crash.
+    ///
+    /// Calling it more than once does nothing.
     /// </remarks>
-    protected virtual void Dispose(bool disposing)
+    public static void Shutdown()
     {
         lock (NativeLock)
         {
-            if (disposedValue)
+            if (_shutDown)
             {
                 return;
             }
 
             NativeMethods.lou_free();
 
-            disposedValue = true;
+            _shutDown = true;
         }
-    }
-
-    public void Dispose()
-    {
-        Dispose(disposing: true);
-
-        // There is no finalizer to suppress, but a derived type could introduce one and would
-        // otherwise have to re-implement IDisposable just to make this call.
-        GC.SuppressFinalize(this);
     }
 }
