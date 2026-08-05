@@ -20,18 +20,28 @@
 FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:8.0-jammy AS base
 LABEL org.opencontainers.image.source=https://github.com/Notalib/LibLouis.NET/
 
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends \
-        build-essential \
-        ca-certificates \
-        curl \
-        m4 \
-        xz-utils \
-        # build/verify_native_binary.sh reads PE files with llvm-readobj, because binutils cannot
-        # read aarch64 PE. readelf and nm for the ELF checks come with build-essential.
-        llvm \
-    && rm -rf /var/lib/apt/lists/*
+# Retried, because a single apt-get run is a coin flip against archive.ubuntu.com: the index and
+# the pool are not updated atomically, so a package version can be listed after it has been removed
+# and the fetch 404s. That is what it did. Each attempt refreshes the index first, since a newer
+# index is usually what resolves it. The explicit ok check matters: without it a loop that never
+# succeeds still falls through and the layer builds with nothing installed.
+RUN set -eu; \
+    ok=0; \
+    for attempt in 1 2 3; do \
+        if apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+                build-essential \
+                ca-certificates \
+                curl \
+                m4 \
+                xz-utils \
+                llvm; then \
+            ok=1; break; \
+        fi; \
+        echo "apt attempt $attempt failed, retrying" >&2; \
+        sleep 10; \
+    done; \
+    [ "$ok" = 1 ] || exit 1; \
+    rm -rf /var/lib/apt/lists/*
 
 ENV PACKAGE_OUTPUT_DIR=/packages
 WORKDIR /source
@@ -40,18 +50,26 @@ WORKDIR /source
 # The five targets Ubuntu has cross compilers for.
 FROM base AS gcc-targets
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        gcc-i686-linux-gnu \
-        gcc-aarch64-linux-gnu \
-        gcc-mingw-w64-i686 \
-        gcc-mingw-w64-x86-64 \
-        # The cross gcc packages only Recommend their target libc, so with
-        # --no-install-recommends they install a compiler that cannot link. Name them explicitly
-        # rather than dropping the flag, so the requirement is visible.
-        libc6-dev-i386-cross \
-        libc6-dev-arm64-cross \
-    && rm -rf /var/lib/apt/lists/*
+# The cross gcc packages only Recommend their target libc, so with --no-install-recommends they
+# install a compiler that cannot link. Named explicitly rather than dropping the flag, so the
+# requirement is visible. Retried for the same reason as the base stage.
+RUN set -eu; \
+    ok=0; \
+    for attempt in 1 2 3; do \
+        if apt-get update && apt-get install -y --no-install-recommends \
+                gcc-i686-linux-gnu \
+                gcc-aarch64-linux-gnu \
+                gcc-mingw-w64-i686 \
+                gcc-mingw-w64-x86-64 \
+                libc6-dev-i386-cross \
+                libc6-dev-arm64-cross; then \
+            ok=1; break; \
+        fi; \
+        echo "apt attempt $attempt failed, retrying" >&2; \
+        sleep 10; \
+    done; \
+    [ "$ok" = 1 ] || exit 1; \
+    rm -rf /var/lib/apt/lists/*
 
 COPY . /source
 RUN sh ./build/build_runtime_packages.sh gcc
