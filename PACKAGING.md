@@ -73,6 +73,11 @@ to the metapackage — nothing else in the repository depends on the choice.
 `Directory.Build.props` is the single source of truth for the upstream version and its checksum;
 the shell scripts read the values back out of it.
 
+The solution is `LibLouis.NET.slnx`, the XML solution format, which needs a .NET SDK of 9.0.200 or
+later — `global.json` declares that floor. An older SDK does not report it usefully: SDK 8 fails
+with `MSB4068: The element <Solution> is unrecognized`, which does not obviously mean the SDK is
+too old.
+
 | Command | Produces |
 | --- | --- |
 | `./build.sh` | Linux + Windows runtime packages and the metapackage, via the container. |
