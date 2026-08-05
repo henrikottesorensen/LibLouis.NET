@@ -35,6 +35,14 @@ public sealed record BrailleSpecCase(
             : string.Concat(value.Select(c => c is >= ' ' and <= '~' ? c.ToString() : $"\\u{(int)c:X4}"));
 }
 
+/// <summary>
+/// A parsed spec: the cases it yields, and a tally of the constructs that were recognised but not
+/// driven, so what is being skipped stays visible rather than becoming invisible coverage loss.
+/// </summary>
+public sealed record BrailleSpec(
+    IReadOnlyList<BrailleSpecCase> Cases,
+    IReadOnlyDictionary<string, int> SkippedConstructs);
+
 public enum TestDirection
 {
     Forward,
@@ -51,6 +59,9 @@ public enum TestMode
     Forward,
     Backward,
     BothDirections,
+
+    /// <summary>A liblouis feature this harness recognises but does not drive yet.</summary>
+    Unsupported,
 }
 
 /// <summary>
@@ -66,16 +77,19 @@ public enum TestMode
 /// Consecutive <c>table</c> keys accumulate rather than replace: the following <c>tests</c> block
 /// runs once per accumulated table. <c>flags</c> persists until the next <c>flags</c>.
 ///
-/// Only the constructs the Danish specs actually use are supported. Anything else throws rather
-/// than being skipped, so a spec using a feature this reader does not model fails loudly instead
-/// of silently testing less than it appears to.
+/// Constructs fall into three groups. Those the harness drives are turned into cases. Those
+/// liblouis supports but the harness does not drive yet are counted in
+/// <see cref="BrailleSpec.SkippedConstructs"/> and their cases dropped. Anything else throws, so a
+/// spec using something nobody has looked at fails loudly rather than quietly testing less than it
+/// appears to.
 /// </remarks>
 public static class BrailleSpecReader
 {
-    public static IReadOnlyList<BrailleSpecCase> Read(string path)
+    public static BrailleSpec Read(string path)
     {
         string specFile = Path.GetFileName(path);
         var cases = new List<BrailleSpecCase>();
+        var skipped = new SortedDictionary<string, int>(StringComparer.Ordinal);
 
         using var reader = new StreamReader(path);
         var parser = new Parser(reader);
@@ -113,23 +127,22 @@ public static class BrailleSpecReader
                     break;
 
                 case "flags":
-                    mode = ReadFlags(parser);
+                    mode = ReadFlags(parser, skipped);
                     break;
 
                 case "tests":
-                    ReadTests(parser, specFile, tables, displayTable, mode, cases);
+                    ReadTests(parser, specFile, tables, displayTable, mode, cases, skipped);
                     tablesUsed = true;
                     break;
 
                 default:
                     throw new NotSupportedException(
-                        $"{specFile}: unsupported top level key '{key}'. This reader models only the " +
-                        "constructs the Danish specs use; see lou_checkyaml.c for the full format.");
+                        $"{specFile}: unsupported top level key '{key}'. See lou_checkyaml.c for the " +
+                        "full format.");
             }
-
         }
 
-        return cases;
+        return new BrailleSpec(cases, skipped);
     }
 
     /// <summary>
@@ -169,7 +182,7 @@ public static class BrailleSpecReader
         return (string.Join(' ', terms), assertMatch);
     }
 
-    private static TestMode ReadFlags(IParser parser)
+    private static TestMode ReadFlags(IParser parser, IDictionary<string, int> skipped)
     {
         parser.Consume<MappingStart>();
 
@@ -185,7 +198,7 @@ public static class BrailleSpecReader
                 throw new NotSupportedException($"unsupported flag '{key}'");
             }
 
-            mode = ParseTestMode(value);
+            mode = ParseTestMode(value, skipped);
         }
 
         parser.Consume<MappingEnd>();
@@ -193,13 +206,25 @@ public static class BrailleSpecReader
         return mode;
     }
 
-    private static TestMode ParseTestMode(string value) => value switch
+    /// <summary>
+    /// hyphenate and display are liblouis features this harness does not drive yet — they map to
+    /// <c>Hyphenate</c> and <c>DotsToCharacters</c>/<c>CharactersToDots</c> — so their cases are
+    /// counted and dropped. An unrecognised mode still throws.
+    /// </summary>
+    private static TestMode ParseTestMode(string value, IDictionary<string, int> skipped) => value switch
     {
         "forward" => TestMode.Forward,
         "backward" => TestMode.Backward,
         "bothDirections" => TestMode.BothDirections,
+        "hyphenate" or "hyphenateBraille" or "display" => Skip($"testmode: {value}", skipped),
         _ => throw new NotSupportedException($"unsupported testmode '{value}'"),
     };
+
+    private static TestMode Skip(string construct, IDictionary<string, int> skipped)
+    {
+        skipped[construct] = skipped.TryGetValue(construct, out int n) ? n + 1 : 1;
+        return TestMode.Unsupported;
+    }
 
     private static void ReadTests(
         IParser parser,
@@ -207,7 +232,8 @@ public static class BrailleSpecReader
         List<(string Query, string? AssertMatch)> tables,
         string displayTable,
         TestMode mode,
-        List<BrailleSpecCase> cases)
+        List<BrailleSpecCase> cases,
+        IDictionary<string, int> skipped)
     {
         parser.Consume<SequenceStart>();
 
@@ -216,21 +242,35 @@ public static class BrailleSpecReader
             SequenceStart entryStart = parser.Consume<SequenceStart>();
             int line = (int)entryStart.Start.Line;
 
-            string input = Unescape(parser.Consume<Scalar>().Value);
-            string expected = Unescape(parser.Consume<Scalar>().Value);
+            // An entry is [input, expected] or [description, input, expected], the second form
+            // labelling a group of cases. They are told apart by what follows the first two
+            // scalars: another scalar means the first was a label.
+            string first = Unescape(parser.Consume<Scalar>().Value);
+            string second = Unescape(parser.Consume<Scalar>().Value);
+            string input, expected;
+
+            if (parser.Current is Scalar)
+            {
+                input = second;
+                expected = Unescape(parser.Consume<Scalar>().Value);
+            }
+            else
+            {
+                input = first;
+                expected = second;
+            }
 
             var xfail = XFail.None;
             TestMode entryMode = mode;
-            bool skip = false;
 
             if (parser.Current is MappingStart)
             {
-                (xfail, entryMode, skip) = ReadTestOptions(parser, mode);
+                (xfail, entryMode) = ReadTestOptions(parser, mode, skipped);
             }
 
             parser.Consume<SequenceEnd>();
 
-            if (skip)
+            if (entryMode == TestMode.Unsupported)
             {
                 continue;
             }
@@ -275,13 +315,12 @@ public static class BrailleSpecReader
         Both = Forward | Backward,
     }
 
-    private static (XFail XFail, TestMode Mode, bool Skip) ReadTestOptions(
-        IParser parser, TestMode mode)
+    private static (XFail XFail, TestMode Mode) ReadTestOptions(
+        IParser parser, TestMode mode, IDictionary<string, int> skipped)
     {
         parser.Consume<MappingStart>();
 
         var xfail = XFail.None;
-        bool skip = false;
 
         while (parser.Current is not MappingEnd)
         {
@@ -294,15 +333,22 @@ public static class BrailleSpecReader
                     break;
 
                 case "testmode":
-                    mode = ParseTestMode(parser.Consume<Scalar>().Value);
+                    mode = ParseTestMode(parser.Consume<Scalar>().Value, skipped);
                     break;
 
-                // Emphasis is applied through typeform, which this prototype does not drive yet.
-                // Skip the value so the rest of the file still parses, and drop the case: silently
-                // running it without the typeform would compare against the wrong expectation.
+                // Options liblouis supports that this harness does not drive. Each changes what the
+                // expected output means, so running the case without honouring it would compare
+                // against the wrong thing. The value is consumed and the case dropped.
                 case "typeform":
+                case "mode":
+                case "inputPos":
+                case "outputPos":
+                case "cursorPos":
+                case "cursorOutPos":
+                case "maxOutputLength":
+                case "realInputLength":
                     parser.SkipThisAndNestedEvents();
-                    skip = true;
+                    mode = Skip($"test option: {key}", skipped);
                     break;
 
                 default:
@@ -312,7 +358,7 @@ public static class BrailleSpecReader
 
         parser.Consume<MappingEnd>();
 
-        return (xfail, mode, skip);
+        return (xfail, mode);
     }
 
     /// <summary>
@@ -355,10 +401,9 @@ public static class BrailleSpecReader
 
     /// <summary>
     /// The specs use single quoted scalars, where YAML performs no escape processing at all, and
-    /// rely on liblouis to interpret the escapes itself. Only the forms the Danish specs actually
-    /// use are handled: \xNNNN and \uNNNN code points, and \\ for a literal backslash.
-    /// Without the backslash case, 'at\\bliver' parses as two backslashes and translates to two
-    /// cells where upstream expects one.
+    /// rely on liblouis to interpret the escapes itself. Only the forms the specs use are handled:
+    /// \xNNNN and \uNNNN code points, and \\ for a literal backslash. Without the backslash case,
+    /// 'at\\bliver' parses as two backslashes and translates to two cells where one is expected.
     /// </summary>
     private static string Unescape(string value)
     {
