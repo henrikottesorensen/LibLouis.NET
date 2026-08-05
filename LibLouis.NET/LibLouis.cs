@@ -367,13 +367,17 @@ public class LibLouis
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
         TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
 
+        // The cursor arrives as a .NET string index and liblouis wants a widechar index.
+        int[] inputOffsets = Utf16OffsetOfWidechar(input);
+        int widecharCursor = ToWidecharCursor(input, cursorPosition);
+
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (NativeLock)
         {
             ThrowIfShutDown();
-            success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
+            success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref widecharCursor, mode) > 0;
         }
 
         if (!success)
@@ -381,12 +385,17 @@ public class LibLouis
             throw new LibLouisException($"String translation failed: {_lastLogMessage}");
         }
 
+        string output = ConvertUCSOutputBufferToString(outputBuffer, outputLength);
+
+        (int[] mappedOutputPosition, int[] mappedInputPosition, int mappedCursor) =
+            MapPositionsToUtf16(input, output, inputOffsets, outputPosition, inputPosition, widecharCursor);
+
         return new TranslatedString
         {
-            Output = ConvertUCSOutputBufferToString(outputBuffer, outputLength),
-            CursorPosition = cursorPosition,
-            InputPosition = inputPosition,
-            OutputPosition = outputPosition,
+            Output = output,
+            CursorPosition = mappedCursor,
+            InputPosition = mappedInputPosition,
+            OutputPosition = mappedOutputPosition,
             OutputDots78 = ExtractOutputDots78(typeFormBuffer, outputLength),
         };
     }
@@ -503,13 +512,17 @@ public class LibLouis
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
         TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
 
+        // The cursor arrives as a .NET string index and liblouis wants a widechar index.
+        int[] inputOffsets = Utf16OffsetOfWidechar(input);
+        int widecharCursor = ToWidecharCursor(input, cursorPosition);
+
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (NativeLock)
         {
             ThrowIfShutDown();
-            success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
+            success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref widecharCursor, mode) > 0;
         }
 
         if (!success)
@@ -517,12 +530,17 @@ public class LibLouis
             throw new LibLouisException($"String translation failed: {_lastLogMessage}");
         }
 
+        string output = ConvertUCSOutputBufferToString(outputBuffer, outputLength);
+
+        (int[] mappedOutputPosition, int[] mappedInputPosition, int mappedCursor) =
+            MapPositionsToUtf16(input, output, inputOffsets, outputPosition, inputPosition, widecharCursor);
+
         return new TranslatedString
         {
-            Output = ConvertUCSOutputBufferToString(outputBuffer, outputLength),
-            CursorPosition = cursorPosition,
-            InputPosition = inputPosition,
-            OutputPosition = outputPosition,
+            Output = output,
+            CursorPosition = mappedCursor,
+            InputPosition = mappedInputPosition,
+            OutputPosition = mappedOutputPosition,
         };
     }
 
@@ -688,6 +706,143 @@ public class LibLouis
         }
 
         return dots;
+    }
+
+    /// <summary>
+    /// Converts a cursor given as a .NET string index into the widechar index liblouis expects.
+    /// </summary>
+    /// <remarks>
+    /// Negative means "no cursor" to liblouis and is passed through untouched.
+    /// </remarks>
+    private int ToWidecharCursor(string input, int cursorPosition)
+    {
+        if (cursorPosition < 0 || input.Length == 0)
+        {
+            return cursorPosition;
+        }
+
+        int[] widechars = WidecharOfUtf16Offset(input);
+
+        return widechars[Math.Clamp(cursorPosition, 0, input.Length - 1)];
+    }
+
+    /// <summary>
+    /// Rewrites liblouis's widechar-indexed position arrays as UTF-16 indices into the managed
+    /// strings, so every value can be used directly as a string index.
+    /// </summary>
+    /// <remarks>
+    /// liblouis counts in widechars: on a UCS-4 build one widechar is a whole Unicode character,
+    /// while a .NET string counts UTF-16 code units. The two agree for BMP text and diverge from
+    /// the first non-BMP character on, which silently misaligns any caller that treats these
+    /// values as string indices - and the arrays exist for nothing else.
+    ///
+    /// The results are sized to the strings they index rather than to the caller's scratch
+    /// buffers, so <c>OutputPosition</c> has one entry per char of the input and
+    /// <c>InputPosition</c> one per char of the output. No slicing is required to use them.
+    ///
+    /// Both halves of a surrogate pair report the same position, since they are one character.
+    /// </remarks>
+    private (int[] OutputPosition, int[] InputPosition, int CursorPosition) MapPositionsToUtf16(
+        string input,
+        string output,
+        int[] inputOffsets,
+        int[] outputWidecharPositions,
+        int[] inputWidecharPositions,
+        int widecharCursor)
+    {
+        int[] outputOffsets = Utf16OffsetOfWidechar(output);
+        int[] inputWidechars = WidecharOfUtf16Offset(input);
+        int[] outputWidechars = WidecharOfUtf16Offset(output);
+
+        int lastInputWidechar = Math.Max(inputOffsets.Length - 2, 0);
+        int lastOutputWidechar = Math.Max(outputOffsets.Length - 2, 0);
+
+        int[] outputPosition = new int[input.Length];
+
+        for (int i = 0; i < input.Length; i++)
+        {
+            int widechar = inputWidechars[i];
+
+            int cell = widechar < outputWidecharPositions.Length ? outputWidecharPositions[widechar] : 0;
+
+            outputPosition[i] = outputOffsets[Math.Clamp(cell, 0, lastOutputWidechar)];
+        }
+
+        int[] inputPosition = new int[output.Length];
+
+        for (int t = 0; t < output.Length; t++)
+        {
+            int widechar = outputWidechars[t];
+
+            int character = widechar < inputWidecharPositions.Length ? inputWidecharPositions[widechar] : 0;
+
+            inputPosition[t] = inputOffsets[Math.Clamp(character, 0, lastInputWidechar)];
+        }
+
+        // A negative cursor means "no cursor" to liblouis; leave it alone.
+        int cursorPosition = widecharCursor < 0 || output.Length == 0
+            ? widecharCursor
+            : outputOffsets[Math.Clamp(widecharCursor, 0, lastOutputWidechar)];
+
+        return (outputPosition, inputPosition, cursorPosition);
+    }
+
+    /// <summary>
+    /// The UTF-16 offset at which each widechar of <paramref name="value"/> starts, with a
+    /// sentinel holding the string's length at the end.
+    /// </summary>
+    private int[] Utf16OffsetOfWidechar(string value)
+    {
+        int[] offsets = new int[CountUCSCharacters(value) + 1];
+
+        int widechar = 0;
+
+        for (int i = 0; i < value.Length; widechar++)
+        {
+            offsets[widechar] = i;
+            i += IsSurrogatePairAt(value, i) ? 2 : 1;
+        }
+
+        offsets[widechar] = value.Length;
+
+        return offsets;
+    }
+
+    /// <summary>
+    /// The widechar that each UTF-16 offset of <paramref name="value"/> belongs to. Both halves of
+    /// a surrogate pair map to the same widechar, because they are one character to liblouis.
+    /// </summary>
+    private int[] WidecharOfUtf16Offset(string value)
+    {
+        int[] widechars = new int[value.Length];
+
+        int widechar = 0;
+
+        for (int i = 0; i < value.Length; widechar++)
+        {
+            int width = IsSurrogatePairAt(value, i) ? 2 : 1;
+
+            for (int k = 0; k < width; k++)
+            {
+                widechars[i + k] = widechar;
+            }
+
+            i += width;
+        }
+
+        return widechars;
+    }
+
+    /// <summary>
+    /// Whether a surrogate pair - one widechar, two chars - starts at <paramref name="index"/>.
+    /// Never true on a UCS-2 build, where a widechar is a UTF-16 code unit.
+    /// </summary>
+    private bool IsSurrogatePairAt(string value, int index)
+    {
+        return CharacterSize == 4
+            && char.IsHighSurrogate(value[index])
+            && index + 1 < value.Length
+            && char.IsLowSurrogate(value[index + 1]);
     }
 
     /// <summary>
