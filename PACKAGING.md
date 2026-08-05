@@ -119,6 +119,27 @@ mean x86:
 
 Both were still present in liblouis 3.38.0, so expect them to survive an upstream bump.
 
+### Only the library is built
+
+The build runs `make -C gnulib` then `make -C liblouis`, not a top level `make`. The tree also
+contains `tools/`, `tables/`, `man/`, `doc/`, `tests/`, `python/` and `windows/`, none of which
+reach a package.
+
+The reason is not only speed. A failure under `tools/` does not stop a top level `make`: the
+`win-arm64` build once emitted eight link errors there and still exited 0, which hid a real problem
+in several thousand lines of log. Building only what is shipped means any failure is about the
+thing being shipped. It also removes libtool's `could not determine the host path` warnings, which
+come from the wrapper scripts it generates around uninstalled executables and were pure noise: 48
+of them in a full build, none now.
+
+gnulib has to be named explicitly and built first. liblouis links `gnulib/libgnu.la`, and make does
+not build a sibling directory on demand — `make -C liblouis` alone stops with `No rule to make
+target '../gnulib/libgnu.la'`.
+
+Skipping `tables/` is safe because the two tables generated there with m4, `nl-chardefs.uti` and
+`nl-NL-g0.utb`, are also shipped pre-generated in the release tarball, so `LibLouis.NET.Tables`
+still stages a complete set.
+
 ### Self-contained Windows binaries
 
 The Windows targets are built with `-static-libgcc`. Without it, 32-bit mingw links against

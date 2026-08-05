@@ -28,7 +28,12 @@ build_runtime_nuget_macos() {
         export CPPFLAGS="-arch $arch"
 
         ./configure --enable-ucs4 --enable-year2038 --host="$host"
-        make -j"$(cpu_count)"
+
+        # Only the library is packaged; see build_runtime_packages.sh. gnulib has to be built
+        # first and by name, because liblouis links against gnulib/libgnu.la and make will not
+        # build a sibling directory on demand.
+        make -j"$(cpu_count)" -C gnulib
+        make -j"$(cpu_count)" -C liblouis
 
         target_dir="$REPO_ROOT/runtime.$rid.liblouis/runtimes/$rid/native"
         mkdir -p "$target_dir"
