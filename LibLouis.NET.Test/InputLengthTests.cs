@@ -29,7 +29,7 @@ public class InputLengthTests
     private static readonly string[] Tables = ["da-dk-braillo.dis", "da-dk-g26.ctb"];
 
     private static string[] TablePaths() =>
-        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t))];
+        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nota-tables", t))];
 
     /// <summary>
     /// Translate() only requires outputPosition to hold input.Length entries, so liblouis must

@@ -19,7 +19,7 @@ public class IndexTablesTests
     private static readonly string[] Tables = ["da-dk-g26.ctb", "da-dk-g16-markers.ctb"];
 
     private static string[] TablePaths() =>
-        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t))];
+        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nota-tables", t))];
 
     /// <summary>
     /// liblouis logs one "Analyzing table &lt;name&gt;" line per array entry it walks, so the number

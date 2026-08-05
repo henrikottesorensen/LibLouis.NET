@@ -23,7 +23,7 @@ public class NonBmpTests
     private static readonly string[] Tables = ["da-dk-braillo.dis", "da-dk-g26.ctb"];
 
     private static string[] TablePaths() =>
-        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t))];
+        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nota-tables", t))];
 
     /// <summary>
     /// How many widechars liblouis sees for <paramref name="value"/>: whole characters on a UCS-4

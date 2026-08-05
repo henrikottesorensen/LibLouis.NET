@@ -29,7 +29,31 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Content Include="tables/**">
+    <!--
+      Nota's tables go to their own output directory. Five of them share a file name with an
+      upstream table and differ from it, and LibLouis.NET.Tables copies the upstream set into
+      tables/, so putting both in one directory makes which copy a test gets depend on MSBuild item
+      ordering. Keeping them apart makes every test say which set it means.
+    -->
+    <Content Include="nota-tables/**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+
+    <!--
+      Nota's tables include a handful of general upstream tables. liblouis resolves an include
+      relative to the directory of the table doing the including, so those have to sit alongside
+      them for nota-tables/ to compile on its own. Copied from the staged upstream set rather than
+      committed, so they cannot drift from it. NotaTablesAreSelfContained asserts the list is
+      complete.
+    -->
+    <Content Include="../LibLouis.NET.Tables/tables/braille-patterns.cti;
+                      ../LibLouis.NET.Tables/tables/digits6Dots.uti;
+                      ../LibLouis.NET.Tables/tables/digits8Dots.uti;
+                      ../LibLouis.NET.Tables/tables/latinLetterDef6Dots.uti;
+                      ../LibLouis.NET.Tables/tables/latinLetterDef8Dots.uti;
+                      ../LibLouis.NET.Tables/tables/litdigits6Dots.uti;
+                      ../LibLouis.NET.Tables/tables/spaces.uti"
+             Link="nota-tables/%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
