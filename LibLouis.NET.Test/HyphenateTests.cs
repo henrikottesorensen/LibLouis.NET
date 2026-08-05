@@ -59,7 +59,7 @@ public class HyphenateTests
     [InlineData("bogstaver\U0001D11E\U0001D11E")]    // and reads past the input buffer
     public void Hyphenate_ReturnsOneFlagPerWidecharNotPerCodeUnit(string word)
     {
-        int expected = NativeShim.lou_charSize() == 4
+        int expected = SafeNativeMethods.lou_charSize() == 4
             ? word.EnumerateRunes().Count()
             : word.Length;
 
