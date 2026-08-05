@@ -116,7 +116,10 @@ public class NativeMethodsTests
 
         Assert.Equal(expected, translated.Output);
 
-        Assert.Equal(inputPosition, translated.InputPosition);
+        // The returned arrays are sized to the strings they index rather than to the scratch
+        // buffers passed in, so InputPosition covers the output and no slicing is needed to use
+        // it. For this BMP input the values are unchanged from what liblouis wrote.
+        Assert.Equal(inputPosition[..translated.Output.Length], translated.InputPosition);
         Assert.Equal(outputPosition, translated.OutputPosition);
 
         Assert.Equal('A', input[inputPosition[12]]);
