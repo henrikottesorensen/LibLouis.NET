@@ -89,7 +89,11 @@ build_runtime_nuget() {
         make distclean
     )
 
-    pack_runtime_package "$rid"
+    # SKIP_PACK leaves the binary staged without packing it, for a container stage that has a
+    # toolchain but no .NET SDK. A later stage packs what this one produced.
+    if [ -z "${SKIP_PACK:-}" ]; then
+        pack_runtime_package "$rid"
+    fi
 }
 
 if [ "$group" = "gcc" ] || [ "$group" = "all" ]; then

@@ -94,13 +94,32 @@ NUGET_LOCAL_FEED=$PWD/packages sh build/build_managed_packages.sh
 ### Cross-compilation
 
 Linux and Windows binaries are cross-compiled in the container defined by `Dockerfile`. The
-toolchain package names there only exist for amd64, so the image is pinned to `linux/amd64` and
-runs under emulation on Apple Silicon.
+toolchain package names there only exist for amd64, so the images are pinned to `linux/amd64` and
+run under emulation on Apple Silicon.
 
-`win-arm64` is the exception: Ubuntu has no aarch64 mingw-w64 gcc, so the image installs the
-[llvm-mingw](https://github.com/mstorsjo/llvm-mingw) toolchain, pinned by SHA-256. It provides
-`aarch64-w64-mingw32-gcc` driver wrappers, so the build script treats it like the other Windows
-targets. Bump `LLVM_MINGW_VERSION` and `LLVM_MINGW_SHA256` together.
+Compiling and packing are separate stages, on images chosen for the job:
+
+| Stage | Image | Installs |
+| --- | --- | --- |
+| `gcc-build` | `ubuntu:noble` | the cross toolchains |
+| `llvm-build` | `mstorsjo/llvm-mingw` | nothing |
+| `pack` | `dotnet/sdk` | nothing |
+
+dotnet appears exactly once in the native build, to pack an already-compiled binary. Compiling C on
+a `dotnet/sdk` image meant apt-getting a toolchain onto an image chosen for something else, and
+pulling in packages the build never uses — which is how a 404 on `linux-libc-dev`, a dependency of
+`build-essential`, once failed CI. The toolchain stages now leave binaries staged under
+`runtime.<rid>.liblouis/runtimes/`, and `build/pack_runtime_packages.sh` packs whatever it finds
+rather than a list that could fall out of step. Finding nothing is an error.
+
+`win-arm64` is the exception among the Windows targets: Ubuntu has no aarch64 mingw-w64 gcc, so it
+uses [llvm-mingw](https://github.com/mstorsjo/llvm-mingw), taken from the image its own author
+publishes and pinned to a dated release. That image already carries `make`, `m4`, `curl` and the
+toolchain on `PATH`.
+
+The `Dockerfile` is excluded from the build context. It is not needed inside any image, and
+excluding it means editing the build definition does not invalidate every `COPY . /source` and
+force a full recompile of every target.
 
 llvm-mingw lives in its own container stage, and that separation is load bearing. It also ships
 `i686-w64-mingw32-gcc` and `x86_64-w64-mingw32-gcc`, so merely having it on `PATH` alongside the
