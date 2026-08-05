@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="LibLouis.NET.Tables/LibLouis.NET.Tables.csproj" />
+  <Project Path="LibLouis.NET.Test/LibLouis.NET.Test.csproj" />
+  <Project Path="LibLouis.NET/LibLouis.NET.csproj" />
+</Solution>
