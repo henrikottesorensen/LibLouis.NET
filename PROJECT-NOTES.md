@@ -187,10 +187,49 @@ Established jointly with the audit session, after both of us drew wrong conclusi
   `lou_free`. So whichever variant runs first in a process pays the compile cost and every later one
   reuses the cache. Both of our "isolating" experiments were measuring test order.
 
+#### How much headroom AutoBraille actually has
+
+Since AutoBraille has a web frontend and translates on request threads, "presumably fine" was not
+good enough. Measured directly — cold compile in a fresh process, smallest thread stack that
+survives, macOS arm64, liblouis 3.33.0:
+
+| Table list | Needs | On a real thread pool thread |
+| --- | --- | --- |
+| `da-dk-braillo.dis` + `da-dk-g26.ctb` | 256–320 KB | survives |
+| `da-dk-braillo.dis` + `da-dk-g16-markers.ctb` | 256–320 KB | survives |
+| `da-dk-braillo.dis` + `da-dk-g08.ctb` | 256–320 KB | survives |
+| `ancient-languages-borger.utb` | 640–768 KB | **overflows** |
+
+So the Danish tables need roughly half what the ancient-language table does, and clear a real
+`Task.Run` thread — the same kind an ASP.NET Core request runs on — while `akk` dies on one. That
+brackets the thread pool's usable stack between the two, and puts AutoBraille comfortably inside it
+rather than on a knife edge.
+
+Three caveats before treating that as settled:
+
+- **Only macOS arm64 was measured.** Production is a Linux container, where both the .NET default
+  and the container's `ulimit -s` differ. Re-run the same measurement on the deployment target; it
+  takes seconds.
+- **The exposure window is the first request that touches a table list**, because only the first
+  compile recurses. That is also why a warm process never shows it, and why this survives testing.
+- **`Shutdown()` re-opens the window.** It calls `lou_free`, which empties the cache, so the next
+  translation pays the compile cost again — on whatever thread happens to make it. One more reason a
+  service should never call it.
+
 **Action for the consumer:** compile every table list at startup, on the main thread or a
-large-stack thread, by translating a dummy string through each. AutoBraille's Danish tables are
-presumably compiled early enough that this has never bitten, but it is one table-list change away
-from mattering.
+large-stack thread, by translating a dummy string through each.
+
+```csharp
+// before the host starts serving
+foreach (string[] tableList in KnownTableLists)
+{
+    LibLouis.Instance.Translate(tableList, "a", 16, null, null, TranslationMode.Regular);
+}
+```
+
+Compilation costs roughly 25 ms per table list, so warming three adds ~75 ms to startup and removes
+the same cost from the first real request. It is a latency win as well as a safety one. Adding a
+language means a new table whose cold-compile depth is unknown until measured.
 
 **In the harness:** each spec runs on a 64 MB thread. The audit session suggests warming all table
 lists once in a fixture instead, which is closer to what a consumer should do and removes test-order
@@ -234,18 +273,21 @@ loaded them and translated a string.
 
 Roughly in order of value.
 
-1. **Characterise the 40 failing specs** and open #16. 102 specs of coverage are ready now.
-2. **Fix the `lou_findTable` leak** once #11 lands, using `lou_freeTableFile`.
-3. **Wrap `lou_translatePrehyphenated`** — replaces work the consumer does by hand.
-4. **Drive the skipped spec constructs**, which covers `Hyphenate`, `DotsToCharacters`,
+1. **Warm the table lists at AutoBraille startup**, and re-measure the cold-compile stack depth on
+   the Linux container it actually deploys to. Cheap, and the only item here that can take a
+   production process down.
+2. **Characterise the 40 failing specs** and open #16. 102 specs of coverage are ready now.
+3. **Fix the `lou_findTable` leak** once #11 lands, using `lou_freeTableFile`.
+4. **Wrap `lou_translatePrehyphenated`** — replaces work the consumer does by hand.
+5. **Drive the skipped spec constructs**, which covers `Hyphenate`, `DotsToCharacters`,
    `CharactersToDots`, the position arrays and `TranslationMode` at the same time.
-5. **Report the compilation stack depth upstream.**
-6. **Fix `spacing`**, or hard-code `null` and document why.
-7. **Decide what is canonical** for the Danish tables, and whether the repository copy should exist.
-8. **Wrap the metadata set** — `lou_findTables`, `lou_listTables`, `lou_getTableInfo`,
+6. **Report the compilation stack depth upstream.**
+7. **Fix `spacing`**, or hard-code `null` and document why.
+8. **Decide what is canonical** for the Danish tables, and whether the repository copy should exist.
+9. **Wrap the metadata set** — `lou_findTables`, `lou_listTables`, `lou_getTableInfo`,
    `lou_getEmphClasses` — with their deallocators.
-9. **`lou_registerTableResolver`**, if embedding tables in the package is wanted.
-10. **Add the dictionary harnesses** behind a switch, if the extra 800,000 cases are wanted.
+10. **`lou_registerTableResolver`**, if embedding tables in the package is wanted.
+11. **Add the dictionary harnesses** behind a switch, if the extra 800,000 cases are wanted.
 
 ---
 
