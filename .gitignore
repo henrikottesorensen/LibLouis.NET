@@ -1,8 +1,17 @@
-﻿.vs
+.vs
+.idea
+.DS_Store
 **/obj
 **/bin
+
+# Downloaded upstream liblouis release and everything derived from it.
 upstream
 packages
-runtime.liblouis/runtimes/win-x64/native/liblouis.dll
-runtime.liblouis/runtimes/win-x86/native/liblouis.dll
+packages-docker
 LibLouis.NET.Tables/tables
+
+# Native binaries staged into the per-RID runtime packages by the build scripts.
+runtime.*.liblouis/runtimes/
+
+# Rider / ReSharper per-user settings
+*.DotSettings.user

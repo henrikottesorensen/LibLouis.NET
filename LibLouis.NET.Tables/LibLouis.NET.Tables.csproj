@@ -7,13 +7,14 @@
     <Authors>Liblouis contributors.</Authors>
     <Company>Liblouis</Company>
     <Title>$(AssemblyName)</Title>
-    <Version>3.33.0</Version>
+    <!-- These are the tables from the upstream release, so the version tracks it. -->
+    <Version>$(LiblouisPackageVersion)</Version>
     <Copyright>Liblouis 2010 - 2025</Copyright>
     <Description>
       Packaged by Nota.
     </Description>
-    <PackageProjectUrl>https://liblouis.io/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Notalib/LibLouis.NET.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Notalib/LibLouis.NET/</PackageProjectUrl>
     <PackageTags>liblouis, braille</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>

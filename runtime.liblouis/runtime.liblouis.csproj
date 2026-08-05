@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Shell project whose only job is to let `dotnet pack` consume runtime.liblouis.nuspec.
+    All package metadata, including the dependencies on the per-RID packages, lives in the nuspec.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <NuspecFile>runtime.liblouis.nuspec</NuspecFile>
+    <NuspecBasePath>$(MSBuildProjectDirectory)</NuspecBasePath>
+    <NuspecProperties>version=$(LiblouisPackageVersion)</NuspecProperties>
+  </PropertyGroup>
+
+</Project>

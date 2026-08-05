@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <LiblouisRid>osx-x64</LiblouisRid>
+    <LiblouisLibraryFileName>liblouis.dylib</LiblouisLibraryFileName>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../build/RuntimePackage.props" />
+
+</Project>

@@ -22,9 +22,11 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
-    <PackageReference Include="runtime.any.liblouis" Version="3.33.0">
-      <IncludeAssets>All</IncludeAssets>
-    </PackageReference>
+    <!--
+      Lower bound is the version this repository currently builds, so restore does not warn about
+      a non-existent 3.0.0 (NU1603). LiblouisPackageVersion comes from Directory.Build.props.
+    -->
+    <PackageReference Include="runtime.liblouis" Version="[$(LiblouisPackageVersion), 4)" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>runtime.liblouis</id>
+    <version>$version$</version>
+    <title>runtime.liblouis</title>
+    <authors>Liblouis contributors.</authors>
+    <owners>Nota</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="file">LICENSE</license>
+    <projectUrl>https://liblouis.io/</projectUrl>
+    <repository type="git" url="https://github.com/notalib/LibLouis.NET" />
+    <copyright>Liblouis 2010 - 2025</copyright>
+    <tags>liblouis braille native</tags>
+    <description>Note: Do not reference this package directly, it is pulled in by LibLouis.NET.
+
+Metapackage that brings in the native liblouis binary for every supported runtime identifier. The .NET host selects the binary matching the runtime it is running on; publishing with an explicit runtime identifier narrows this down to a single binary.
+
+The Liblouis software suite provides an open-source braille translator, back-translator and formatter for a large number of languages and braille codes. It is a set of libraries designed for use in any of a number of applications, both free and commercial. It is written in C so that it does not require a runtime environment and hence can be used in applications written in high-level languages such as Java and Python. Packaged by Nota.</description>
+
+    <!--
+      Hand-written rather than generated from PackageReference items on purpose.
+
+      A metapackage is pure metadata, and declaring the dependencies here means packing it needs no
+      restore. That matters because no single CI job ever has all seven runtime packages available:
+      the Linux job builds the Linux and Windows RIDs, the macOS job builds the macOS RIDs. With a
+      nuspec the metapackage can be produced by any job, in any order, without a local feed.
+
+      Versions are pinned exactly so a consumer can never end up with a native binary from a
+      different liblouis release than the metapackage advertises.
+    -->
+    <dependencies>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="runtime.linux-x86.liblouis" version="[$version$]" />
+        <dependency id="runtime.linux-x64.liblouis" version="[$version$]" />
+        <dependency id="runtime.linux-arm64.liblouis" version="[$version$]" />
+        <dependency id="runtime.win-x86.liblouis" version="[$version$]" />
+        <dependency id="runtime.win-x64.liblouis" version="[$version$]" />
+        <dependency id="runtime.win-arm64.liblouis" version="[$version$]" />
+        <dependency id="runtime.osx-x64.liblouis" version="[$version$]" />
+        <dependency id="runtime.osx-arm64.liblouis" version="[$version$]" />
+      </group>
+    </dependencies>
+  </metadata>
+
+  <files>
+    <file src="LICENSE" target="LICENSE" />
+    <file src="../build/_._" target="lib/netstandard2.0/_._" />
+  </files>
+</package>

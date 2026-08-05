@@ -1,0 +1,23 @@
+<Project>
+
+  <!--
+    Single source of truth for the upstream liblouis release that this repository packages.
+
+    The shell scripts under build/ read these values back out of this file with sed, so keep
+    each property on one line in the form <Name>value</Name>.
+  -->
+  <PropertyGroup>
+    <LiblouisVersion>3.33.0</LiblouisVersion>
+    <LiblouisTarballSha384>2906b0787781c195b4386ee52090d1038990db4134705ad207b2820e790d33d9384ddea1818e32762b8c1f4f9e380a77</LiblouisTarballSha384>
+  </PropertyGroup>
+
+  <!--
+    Version stamped on the native runtime packages. It tracks the upstream liblouis version so a
+    consumer can tell at a glance which liblouis they are getting. Override it when a packaging-only
+    fix has to ship without an upstream bump, e.g. -p:LiblouisPackageVersion=3.33.0.1
+  -->
+  <PropertyGroup>
+    <LiblouisPackageVersion Condition="'$(LiblouisPackageVersion)' == ''">$(LiblouisVersion)</LiblouisPackageVersion>
+  </PropertyGroup>
+
+</Project>

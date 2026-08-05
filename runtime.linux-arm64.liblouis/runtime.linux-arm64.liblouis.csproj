@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <LiblouisRid>linux-arm64</LiblouisRid>
+    <LiblouisLibraryFileName>liblouis.so</LiblouisLibraryFileName>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../build/RuntimePackage.props" />
+
+</Project>

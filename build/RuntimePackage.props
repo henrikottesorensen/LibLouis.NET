@@ -1,0 +1,65 @@
+<Project>
+
+  <!--
+    Shared definition of a single-RID native runtime package.
+
+    Each runtime.<rid>.liblouis project sets LiblouisRid and LiblouisLibraryFileName and imports
+    this file. The package carries exactly one payload:
+
+        runtimes/<rid>/native/<library>
+
+    That path is the convention the .NET SDK and host understand. Every such asset from every
+    referenced package is written into the consuming application's .deps.json as a "runtimeTargets"
+    entry; at startup the host picks the entry matching the running RID and adds its directory to
+    NATIVE_DLL_SEARCH_DIRECTORIES, which is what [LibraryImport("liblouis")] probes. A
+    `dotnet publish -r <rid>` prunes the set down to the single matching asset at publish time.
+
+    The package deliberately ships no managed assembly. lib/netstandard2.0/_._ is the conventional
+    empty marker that tells NuGet "this package is compatible with netstandard2.0 and later, it just
+    has nothing to compile against".
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>runtime.$(LiblouisRid).liblouis</PackageId>
+    <Version>$(LiblouisPackageVersion)</Version>
+    <Title>$(PackageId)</Title>
+    <Authors>Liblouis contributors.</Authors>
+    <Company>Liblouis</Company>
+    <Copyright>Liblouis 2010 - 2025</Copyright>
+    <Description>Note: Do not reference this package directly, reference runtime.liblouis instead.
+
+Native liblouis binary for the $(LiblouisRid) runtime identifier.
+
+The Liblouis software suite provides an open-source braille translator, back-translator and formatter for a large number of languages and braille codes. It is a set of libraries designed for use in any of a number of applications, both free and commercial. It is written in C so that it does not require a runtime environment and hence can be used in applications written in high-level languages such as Java and Python. Packaged by Nota.</Description>
+    <PackageProjectUrl>https://liblouis.io/</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <!-- The repository that produces the package, not upstream liblouis. See 3a40748. -->
+    <RepositoryUrl>https://github.com/notalib/LibLouis.NET</RepositoryUrl>
+    <PackageTags>liblouis, braille, native</PackageTags>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+
+    <LiblouisNativeAsset>runtimes/$(LiblouisRid)/native/$(LiblouisLibraryFileName)</LiblouisNativeAsset>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(LiblouisNativeAsset)" PackagePath="$(LiblouisNativeAsset)" Pack="true" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)_._" PackagePath="lib/netstandard2.0/_._" Pack="true" Visible="false" />
+    <None Update="LICENSE" PackagePath="\" Pack="true" />
+  </ItemGroup>
+
+  <!--
+    Without this, a missing native binary produces a package that restores cleanly and then fails at
+    the first P/Invoke. Fail the pack instead.
+  -->
+  <Target Name="EnsureLiblouisNativeAssetExists" BeforeTargets="GenerateNuspec">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)/$(LiblouisNativeAsset)')"
+           Text="Native binary '$(LiblouisNativeAsset)' is missing. Build it first with build/build_runtime_packages.sh (Linux and Windows RIDs) or build/build_runtime_macos_packages.sh (macOS RIDs)." />
+  </Target>
+
+</Project>
