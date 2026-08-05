@@ -7,14 +7,14 @@
     each property on one line in the form <Name>value</Name>.
   -->
   <PropertyGroup>
-    <LiblouisVersion>3.33.0</LiblouisVersion>
-    <LiblouisTarballSha384>2906b0787781c195b4386ee52090d1038990db4134705ad207b2820e790d33d9384ddea1818e32762b8c1f4f9e380a77</LiblouisTarballSha384>
+    <LiblouisVersion>3.38.0</LiblouisVersion>
+    <LiblouisTarballSha384>c4ed69af87344e34cb88b9775cc4423e18a7891443ac73c0a173ecbbb558513f2a3a58df9d99b39335319034f5b320b4</LiblouisTarballSha384>
   </PropertyGroup>
 
   <!--
     Version stamped on the native runtime packages. It tracks the upstream liblouis version so a
     consumer can tell at a glance which liblouis they are getting. Override it when a packaging-only
-    fix has to ship without an upstream bump, e.g. -p:LiblouisPackageVersion=3.33.0.1
+    fix has to ship without an upstream bump, e.g. -p:LiblouisPackageVersion=3.38.0.1
   -->
   <PropertyGroup>
     <LiblouisPackageVersion Condition="'$(LiblouisPackageVersion)' == ''">$(LiblouisVersion)</LiblouisPackageVersion>
