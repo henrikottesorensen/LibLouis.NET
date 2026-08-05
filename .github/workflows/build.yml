@@ -27,14 +27,14 @@ jobs:
     name: native (linux + windows RIDs)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Cross-compile and pack
         env:
           DOCKER_BUILDKIT: '1'
         run: ./build.sh
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages-native-linux
           path: packages/*.nupkg
@@ -45,16 +45,16 @@ jobs:
     name: native (macOS RIDs)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
       - name: Build and pack
         run: sh ./build/build_runtime_macos_packages.sh
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages-native-macos
           path: packages/*.nupkg
@@ -76,14 +76,14 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
       - name: Collect runtime packages into a local feed
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: packages-native-*
           merge-multiple: true
@@ -111,14 +111,14 @@ jobs:
     needs: [native-linux, native-macos]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
       - name: Collect runtime packages into a local feed
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: packages-native-*
           merge-multiple: true
@@ -131,7 +131,7 @@ jobs:
           SKIP_TESTS: '1'
         run: sh ./build/build_managed_packages.sh
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages-managed
           path: packages/*.nupkg
@@ -150,11 +150,11 @@ jobs:
     needs: [native-linux, native-macos, test, managed]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: packages-*
           merge-multiple: true
