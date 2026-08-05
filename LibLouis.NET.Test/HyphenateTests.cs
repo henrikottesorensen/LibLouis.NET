@@ -48,4 +48,23 @@ public class HyphenateTests
             Assert.Equal(word.Length, hyphens.Length);
         }
     }
+
+    /// <summary>
+    /// inlen is a widechar count. On a UCS-4 build a non-BMP character is one widechar but two
+    /// chars, so passing string.Length claims the buffer is longer than it is - and lou_hyphenate
+    /// memcpy's exactly inlen widechars out of it, with no terminator to stop at.
+    /// </summary>
+    [Theory]
+    [InlineData("bogstaver\U0001D11E")]              // one flag too many
+    [InlineData("bogstaver\U0001D11E\U0001D11E")]    // and reads past the input buffer
+    public void Hyphenate_ReturnsOneFlagPerWidecharNotPerCodeUnit(string word)
+    {
+        int expected = NativeShim.lou_charSize() == 4
+            ? word.EnumerateRunes().Count()
+            : word.Length;
+
+        string hyphens = LibLouis.Instance.Hyphenate(TablePaths(), word, TranslationMode.Regular);
+
+        Assert.Equal(expected, hyphens.Length);
+    }
 }
