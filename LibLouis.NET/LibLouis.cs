@@ -80,15 +80,17 @@ public class LibLouis : IDisposable
         NativeMethods.lou_registerLogCallback(_logCallback);
     }
 
-    // https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/unmanaged
-    ~LibLouis()
-    {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        Dispose(disposing: false);
-    }
+    // Deliberately no finalizer. lou_free tears down state that is global to the process, while a
+    // finalizer runs per managed instance: in a collectible AssemblyLoadContext it would free the
+    // tables of every other context still using liblouis, from the finalizer thread, outside the
+    // lock. Nothing here owns a handle that needs releasing if the caller forgets to dispose.
 
     private ILogger _logger = NullLogger.Instance;
-    private bool disposedValue;
+
+    /// <summary>
+    /// Read by the guards without the lock, written by <see cref="Dispose(bool)"/> under it.
+    /// </summary>
+    private volatile bool disposedValue;
 
     /// <summary>
     /// ILogger instance LibLouis will log to.
@@ -103,6 +105,8 @@ public class LibLouis : IDisposable
     {
         ArgumentNullException.ThrowIfNull(logger, nameof(logger));
 
+        // Deliberately usable after disposal: neither call touches anything lou_free released,
+        // and being able to attach a logger while shutting down is worth more than the symmetry.
         lock (_lock)
         {
             _logger = logger;
@@ -132,7 +136,10 @@ public class LibLouis : IDisposable
 
             if (_logger.IsEnabled(l))
             {
-                _logger.Log(l, message);
+                // Passed as an argument, not as the template: liblouis messages contain table
+                // paths and rule text, and a stray brace would otherwise be parsed as a
+                // placeholder.
+                _logger.Log(l, "{LiblouisMessage}", message);
             }
         }
         catch
@@ -163,6 +170,7 @@ public class LibLouis : IDisposable
         {
             lock (_lock)
             {
+                ThrowIfDisposed();
                 return NativeMethods.lou_getDataPath();
             }
         }
@@ -171,6 +179,7 @@ public class LibLouis : IDisposable
             ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(value));
             lock (_lock)
             {
+                ThrowIfDisposed();
                 NativeMethods.lou_setDataPath(value);
             }
         }
@@ -194,6 +203,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
+            ThrowIfDisposed();
             return NativeMethods.lou_findTable(query);
         }
     }
@@ -213,6 +223,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
+            ThrowIfDisposed();
             NativeMethods.lou_indexTables(nullTerminated);
         }
     }
@@ -236,6 +247,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
+            ThrowIfDisposed();
             success = NativeMethods.lou_dotsToChar(tables, inputBuffer, outputBuffer, length, TranslationMode.Regular) > 0;
         }
 
@@ -267,6 +279,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
+            ThrowIfDisposed();
             success = NativeMethods.lou_charToDots(tables, inputBuffer, outputBuffer, length, TranslationMode.Regular) > 0;
         }
 
@@ -341,6 +354,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
+            ThrowIfDisposed();
             success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
         }
 
@@ -399,6 +413,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
+            ThrowIfDisposed();
             success = NativeMethods.lou_translateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, mode) > 0;
         }
 
@@ -474,6 +489,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
+            ThrowIfDisposed();
             success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, outputPosition, inputPosition, ref cursorPosition, mode) > 0;
         }
 
@@ -530,6 +546,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
+            ThrowIfDisposed();
             success = NativeMethods.lou_backTranslateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacing, mode) > 0;
         }
 
@@ -585,6 +602,7 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
+            ThrowIfDisposed();
             success = NativeMethods.lou_hyphenate(tables, inputBuffer, length, hyphens, mode) > 0;
         }
 
@@ -673,27 +691,49 @@ public class LibLouis : IDisposable
         return LibLouisStringEncoder.GetString(outputBuffer, 0, Math.Min(outputLength * CharacterSize, outputBuffer.Length));
     }
 
+    /// <summary>
+    /// Throws if liblouis has already been torn down.
+    /// </summary>
+    /// <remarks>
+    /// Called from inside the lock, immediately before the native call. Checking on the way in
+    /// instead would leave a window for Dispose to free the tables between the check and the call.
+    /// </remarks>
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(disposedValue, this);
+    }
+
+    /// <summary>
+    /// Frees everything liblouis has allocated.
+    /// </summary>
+    /// <remarks>
+    /// This is process-global teardown, not the release of a per-instance resource: lou_free
+    /// walks and frees the translation and display table chains that every caller shares. It
+    /// therefore takes the same lock as every other native call - freeing those chains while
+    /// another thread is translating is a use-after-free, which shows up as anything from a
+    /// nonsense "no mapping for dot pattern" error to a crash.
+    /// </remarks>
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposedValue)
+        lock (_lock)
         {
-            if (disposing)
+            if (disposedValue)
             {
-                // Dispose managed state (managed objects)
+                return;
             }
 
-            // Free unmanaged resources (unmanaged objects) and override finalizer
             NativeMethods.lou_free();
 
-            // Set large fields to null
             disposedValue = true;
         }
     }
 
     public void Dispose()
     {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: true);
+
+        // There is no finalizer to suppress, but a derived type could introduce one and would
+        // otherwise have to re-implement IDisposable just to make this call.
         GC.SuppressFinalize(this);
     }
 }
