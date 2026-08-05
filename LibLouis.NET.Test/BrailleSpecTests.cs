@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 using Xunit;
 
@@ -50,7 +51,43 @@ public class BrailleSpecTests
     [MemberData(nameof(SpecFiles))]
     public void MatchesUpstreamExpectations(string specFile)
     {
-        IReadOnlyList<BrailleSpecCase> cases = BrailleSpecReader.Read(Path.Combine(SpecDirectory, specFile));
+        // Run on a thread with a generous stack, because compiling a table can recurse deeply.
+        // ancient-languages-borger.utb needs somewhere between 640KB and 768KB to compile, which is
+        // more than the test host hands a test, and a stack overflow kills the process rather than
+        // failing the test.
+        //
+        // It is compilation, not translation: once a table list is compiled, translating through it
+        // runs in 128KB. The first call using a table list is simply the one that pays for the
+        // compile. Nothing about the input matters - ASCII overflows the same as non-BMP - and
+        // liblouis caches compiled tables process-wide, so without a large stack somewhere the
+        // result depends on which test happened to compile a given table first.
+        Exception? failure = null;
+        var worker = new Thread(
+            () =>
+            {
+                try
+                {
+                    RunSpec(specFile);
+                }
+                catch (Exception ex)
+                {
+                    failure = ex;
+                }
+            },
+            64 * 1024 * 1024);
+
+        worker.Start();
+        worker.Join();
+
+        if (failure is not null)
+        {
+            throw new Xunit.Sdk.XunitException(failure.Message);
+        }
+    }
+
+    private static void RunSpec(string specFile)
+    {
+        BrailleSpec spec = BrailleSpecReader.Read(Path.Combine(SpecDirectory, specFile));
 
         IndexUpstreamTables();
 
@@ -58,7 +95,7 @@ public class BrailleSpecTests
         var unexpectedPasses = new List<string>();
         int checkedCount = 0;
 
-        foreach (BrailleSpecCase testCase in cases)
+        foreach (BrailleSpecCase testCase in spec.Cases)
         {
 
             string table = ResolveTable(testCase, TableCache.Value);
@@ -122,10 +159,30 @@ public class BrailleSpecTests
 
         var resolved = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        foreach (string query in Directory.EnumerateFiles(SpecDirectory, "*.yaml")
-                     .SelectMany(BrailleSpecReader.Read)
-                     .Select(c => c.TableQuery)
-                     .Distinct(StringComparer.Ordinal))
+        // A spec this reader cannot parse is skipped here rather than allowed to throw: the cache is
+        // shared by every spec's test, so one unparseable file would otherwise fail all of them
+        // instead of just its own.
+        var queries = new SortedSet<string>(StringComparer.Ordinal);
+
+        foreach (string file in Directory.EnumerateFiles(SpecDirectory, "*.yaml"))
+        {
+            try
+            {
+                foreach (BrailleSpecCase testCase in BrailleSpecReader.Read(file).Cases)
+                {
+                    if (testCase.TableQuery.Contains(':', StringComparison.Ordinal))
+                    {
+                        queries.Add(testCase.TableQuery);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Reported by that spec's own test.
+            }
+        }
+
+        foreach (string query in queries)
         {
             resolved[query] = LibLouis.Instance.FindTable(query) ?? string.Empty;
         }
@@ -141,6 +198,19 @@ public class BrailleSpecTests
     /// </summary>
     private static string ResolveTable(BrailleSpecCase testCase, Dictionary<string, string> cache)
     {
+        // A table is given three ways: as a query for lou_findTable, as a plain file name, or as an
+        // inline table written as a block scalar. Inline content is the only one containing a
+        // newline; a query is always key:value pairs, so a colon separates the other two.
+        if (testCase.TableQuery.Contains('\n', StringComparison.Ordinal))
+        {
+            return Materialize(testCase.TableQuery, ".utb");
+        }
+
+        if (!testCase.TableQuery.Contains(':', StringComparison.Ordinal))
+        {
+            return Path.Combine(TableDirectory, testCase.TableQuery);
+        }
+
         if (!cache.TryGetValue(testCase.TableQuery, out string? resolved))
         {
             resolved = LibLouis.Instance.FindTable(testCase.TableQuery) ?? string.Empty;
@@ -168,20 +238,26 @@ public class BrailleSpecTests
     /// liblouis only takes paths, so the inline form is written out next to the tables, where the
     /// includes inside it resolve.
     /// </summary>
-    private static string ResolveDisplayTable(string display)
-    {
-        // A file name never contains a newline, so this distinguishes the two forms.
-        if (!display.Contains('\n', StringComparison.Ordinal))
-        {
-            return Path.Combine(TableDirectory, display);
-        }
+    private static string ResolveDisplayTable(string display) =>
+        display.Contains('\n', StringComparison.Ordinal)
+            ? Materialize(display, ".dis")
+            : Path.Combine(TableDirectory, display);
 
-        string name = $"inline-{Convert.ToHexString(System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(display)))[..8]}.dis";
-        string path = Path.Combine(TableDirectory, name);
+    /// <summary>
+    /// Writes an inline table out next to the tables, where the include lines inside it resolve.
+    /// liblouis only takes paths, and specs may define a display or translation table inline as a
+    /// block scalar rather than naming a file — usually to include a standard table and override a
+    /// rule or two.
+    /// </summary>
+    private static string Materialize(string content, string extension)
+    {
+        string hash = Convert.ToHexString(
+            System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(content)))[..8];
+        string path = Path.Combine(TableDirectory, $"inline-{hash}{extension}");
 
         if (!File.Exists(path))
         {
-            File.WriteAllText(path, display);
+            File.WriteAllText(path, content);
         }
 
         return path;
