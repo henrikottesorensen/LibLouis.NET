@@ -119,23 +119,4 @@ public class TypeFormBufferTests
         Assert.Equal(untouched, typeform);
     }
 
-    /// <summary>
-    /// Raw P/Invoke used to characterise native behaviour without going through the wrapper.
-    /// </summary>
-    private static class NativeShim
-    {
-        [DllImport("liblouis", EntryPoint = "lou_charSize")]
-        internal static extern int lou_charSize();
-
-        [DllImport("liblouis", EntryPoint = "lou_translateString", CharSet = CharSet.Ansi)]
-        internal static extern int lou_translateString(
-            [MarshalAs(UnmanagedType.LPUTF8Str)] string tableList,
-            byte[] inbuf,
-            ref int inlen,
-            byte[] outbuf,
-            ref int outlen,
-            ushort[]? typeform,
-            [MarshalAs(UnmanagedType.LPUTF8Str)] string? spacing,
-            int mode);
-    }
 }

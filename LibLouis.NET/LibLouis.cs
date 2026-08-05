@@ -226,15 +226,17 @@ public class LibLouis : IDisposable
     {
         ArgumentNullException.ThrowIfNull(input, nameof(input));
 
+        int length = CountUCSCharacters(input);
+
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
-        byte[] outputBuffer = PrepareUCSOutputBuffer(input.Length);
+        byte[] outputBuffer = PrepareUCSOutputBuffer(length);
 
         string tables = string.Join(',', tableList);
         bool success;
 
         lock (_lock)
         {
-            success = NativeMethods.lou_dotsToChar(tables, inputBuffer, outputBuffer, input.Length, TranslationMode.Regular) > 0;
+            success = NativeMethods.lou_dotsToChar(tables, inputBuffer, outputBuffer, length, TranslationMode.Regular) > 0;
         }
 
         if (!success)
@@ -242,7 +244,7 @@ public class LibLouis : IDisposable
             throw new LibLouisException($"String translation failed: {_lastLogMessage}");
         }
 
-        return ConvertUCSOutputBufferToString(outputBuffer, input.Length);
+        return ConvertUCSOutputBufferToString(outputBuffer, length);
     }
 
     /// <summary>
@@ -254,16 +256,18 @@ public class LibLouis : IDisposable
     {
         ArgumentNullException.ThrowIfNull(input, nameof(input));
 
+        int length = CountUCSCharacters(input);
+
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
-        byte[] outputBuffer = PrepareUCSOutputBuffer(input.Length);
-        
+        byte[] outputBuffer = PrepareUCSOutputBuffer(length);
+
         string tables = string.Join(',', tableList);
 
         bool success;
 
         lock (_lock)
         {
-            success = NativeMethods.lou_charToDots(tables, inputBuffer, outputBuffer, input.Length, TranslationMode.Regular) > 0;
+            success = NativeMethods.lou_charToDots(tables, inputBuffer, outputBuffer, length, TranslationMode.Regular) > 0;
         }
 
         if (!success)
@@ -271,8 +275,7 @@ public class LibLouis : IDisposable
             throw new LibLouisException($"String translation failed: {_lastLogMessage}");
         }
 
-        return ConvertUCSOutputBufferToString(outputBuffer, input.Length);
-
+        return ConvertUCSOutputBufferToString(outputBuffer, length);
     }
 
     /// <summary>
@@ -323,12 +326,12 @@ public class LibLouis : IDisposable
             throw new ArgumentException($"{nameof(outputPosition)} parameter must point to an array of integers with at least input length elements.", nameof(outputPosition));
         }
 
-        // Counts the NUL terminator, which is safe but load bearing in an unobvious way: liblouis
-        // clamps the length at the first NUL and then overwrites inlen with the number of
-        // characters it actually consumed, before it computes any position mapping. The
-        // terminator is therefore never translated and never widens a position array write.
-        // See InputLengthTests.
-        int inputLength = input.Length + 1;
+        // Counted in widechars, and including the NUL terminator. The terminator is safe but load
+        // bearing in an unobvious way: liblouis clamps the length at the first NUL and then
+        // overwrites inlen with the number of characters it actually consumed, before it computes
+        // any position mapping. It is therefore never translated and never widens a position
+        // array write. See InputLengthTests.
+        int inputLength = CountUCSCharacters(input) + 1;
         int outputBufferLength = outputLength;
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
@@ -383,12 +386,12 @@ public class LibLouis : IDisposable
             throw new ArgumentException("Spacing must be the same length as input or null");
         }
 
-        // Counts the NUL terminator, which is safe but load bearing in an unobvious way: liblouis
-        // clamps the length at the first NUL and then overwrites inlen with the number of
-        // characters it actually consumed, before it computes any position mapping. The
-        // terminator is therefore never translated and never widens a position array write.
-        // See InputLengthTests.
-        int inputLength = input.Length + 1;
+        // Counted in widechars, and including the NUL terminator. The terminator is safe but load
+        // bearing in an unobvious way: liblouis clamps the length at the first NUL and then
+        // overwrites inlen with the number of characters it actually consumed, before it computes
+        // any position mapping. It is therefore never translated and never widens a position
+        // array write. See InputLengthTests.
+        int inputLength = CountUCSCharacters(input) + 1;
         int outputBufferLength = outputLength;
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
@@ -460,12 +463,12 @@ public class LibLouis : IDisposable
             throw new ArgumentException($"{nameof(outputPosition)} parameter must point to an array of integers with at least input length elements.", nameof(outputPosition));
         }
 
-        // Counts the NUL terminator, which is safe but load bearing in an unobvious way: liblouis
-        // clamps the length at the first NUL and then overwrites inlen with the number of
-        // characters it actually consumed, before it computes any position mapping. The
-        // terminator is therefore never translated and never widens a position array write.
-        // See InputLengthTests.
-        int inputLength = input.Length + 1;
+        // Counted in widechars, and including the NUL terminator. The terminator is safe but load
+        // bearing in an unobvious way: liblouis clamps the length at the first NUL and then
+        // overwrites inlen with the number of characters it actually consumed, before it computes
+        // any position mapping. It is therefore never translated and never widens a position
+        // array write. See InputLengthTests.
+        int inputLength = CountUCSCharacters(input) + 1;
         int outputBufferLength = outputLength;
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
@@ -518,12 +521,12 @@ public class LibLouis : IDisposable
             throw new ArgumentException("Spacing must be the same length as input or null");
         }
 
-        // Counts the NUL terminator, which is safe but load bearing in an unobvious way: liblouis
-        // clamps the length at the first NUL and then overwrites inlen with the number of
-        // characters it actually consumed, before it computes any position mapping. The
-        // terminator is therefore never translated and never widens a position array write.
-        // See InputLengthTests.
-        int inputLength = input.Length + 1;
+        // Counted in widechars, and including the NUL terminator. The terminator is safe but load
+        // bearing in an unobvious way: liblouis clamps the length at the first NUL and then
+        // overwrites inlen with the number of characters it actually consumed, before it computes
+        // any position mapping. It is therefore never translated and never widens a position
+        // array write. See InputLengthTests.
+        int inputLength = CountUCSCharacters(input) + 1;
         int outputBufferLength = outputLength;
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
@@ -625,6 +628,19 @@ public class LibLouis : IDisposable
         formtype.AsSpan(0, Math.Min(formtype.Length, buffer.Length)).CopyTo(buffer);
 
         return buffer;
+    }
+
+    /// <summary>
+    /// The number of liblouis widechars <paramref name="input"/> occupies.
+    /// </summary>
+    /// <remarks>
+    /// Not the same as string.Length on a UCS-4 build: a non-BMP character is one widechar but
+    /// two chars. Lengths handed to liblouis have to be counted in widechars, or they describe a
+    /// longer buffer than the one that was allocated.
+    /// </remarks>
+    private int CountUCSCharacters(string input)
+    {
+        return LibLouisStringEncoder.GetByteCount(input) / CharacterSize;
     }
 
     /// <summary>
