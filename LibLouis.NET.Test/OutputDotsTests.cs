@@ -15,9 +15,10 @@ namespace LibLouis.NET.Test;
 /// </summary>
 public class OutputDotsTests
 {
+    private static readonly string[] Tables = ["da-dk-braillo.dis", "da-dk-g08.ctb"];
+
     private static string[] EightDotTables() =>
-        [.. new[] { "da-dk-braillo.dis", "da-dk-g08.ctb" }
-            .Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t))];
+        [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t))];
 
     private static TranslatedString TranslateWithTypeForm(string input)
     {
