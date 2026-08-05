@@ -326,12 +326,10 @@ public class LibLouis : IDisposable
             throw new ArgumentException($"{nameof(outputPosition)} parameter must point to an array of integers with at least input length elements.", nameof(outputPosition));
         }
 
-        // Counted in widechars, and including the NUL terminator. The terminator is safe but load
-        // bearing in an unobvious way: liblouis clamps the length at the first NUL and then
-        // overwrites inlen with the number of characters it actually consumed, before it computes
-        // any position mapping. It is therefore never translated and never widens a position
-        // array write. See InputLengthTests.
-        int inputLength = CountUCSCharacters(input) + 1;
+        // The number of widechars to translate, excluding the NUL terminator, which is what the
+        // header means by inlen and what upstream callers pass. The buffer stays terminated: the
+        // translate functions clamp at the first NUL, so an embedded NUL still ends the input.
+        int inputLength = CountUCSCharacters(input);
         int outputBufferLength = outputLength;
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
@@ -386,12 +384,10 @@ public class LibLouis : IDisposable
             throw new ArgumentException("Spacing must be the same length as input or null");
         }
 
-        // Counted in widechars, and including the NUL terminator. The terminator is safe but load
-        // bearing in an unobvious way: liblouis clamps the length at the first NUL and then
-        // overwrites inlen with the number of characters it actually consumed, before it computes
-        // any position mapping. It is therefore never translated and never widens a position
-        // array write. See InputLengthTests.
-        int inputLength = CountUCSCharacters(input) + 1;
+        // The number of widechars to translate, excluding the NUL terminator, which is what the
+        // header means by inlen and what upstream callers pass. The buffer stays terminated: the
+        // translate functions clamp at the first NUL, so an embedded NUL still ends the input.
+        int inputLength = CountUCSCharacters(input);
         int outputBufferLength = outputLength;
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
@@ -463,12 +459,10 @@ public class LibLouis : IDisposable
             throw new ArgumentException($"{nameof(outputPosition)} parameter must point to an array of integers with at least input length elements.", nameof(outputPosition));
         }
 
-        // Counted in widechars, and including the NUL terminator. The terminator is safe but load
-        // bearing in an unobvious way: liblouis clamps the length at the first NUL and then
-        // overwrites inlen with the number of characters it actually consumed, before it computes
-        // any position mapping. It is therefore never translated and never widens a position
-        // array write. See InputLengthTests.
-        int inputLength = CountUCSCharacters(input) + 1;
+        // The number of widechars to translate, excluding the NUL terminator, which is what the
+        // header means by inlen and what upstream callers pass. The buffer stays terminated: the
+        // translate functions clamp at the first NUL, so an embedded NUL still ends the input.
+        int inputLength = CountUCSCharacters(input);
         int outputBufferLength = outputLength;
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
@@ -521,12 +515,10 @@ public class LibLouis : IDisposable
             throw new ArgumentException("Spacing must be the same length as input or null");
         }
 
-        // Counted in widechars, and including the NUL terminator. The terminator is safe but load
-        // bearing in an unobvious way: liblouis clamps the length at the first NUL and then
-        // overwrites inlen with the number of characters it actually consumed, before it computes
-        // any position mapping. It is therefore never translated and never widens a position
-        // array write. See InputLengthTests.
-        int inputLength = CountUCSCharacters(input) + 1;
+        // The number of widechars to translate, excluding the NUL terminator, which is what the
+        // header means by inlen and what upstream callers pass. The buffer stays terminated: the
+        // translate functions clamp at the first NUL, so an embedded NUL still ends the input.
+        int inputLength = CountUCSCharacters(input);
         int outputBufferLength = outputLength;
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
@@ -560,7 +552,8 @@ public class LibLouis : IDisposable
     /// <param name="mode"></param>
     /// <returns>
     /// One character per character of <paramref name="input"/>: '1' where the word may be broken,
-    /// '0' where it may not, '2' after an existing hyphen.
+    /// '0' where it may not, '2' after an existing hyphen. On a UCS-4 build a non-BMP character
+    /// counts once, so the result can be shorter than <paramref name="input"/>.
     /// </returns>
     /// <exception cref="LibLouisException"></exception>
     public string Hyphenate(IEnumerable<string> tableList, string input, TranslationMode mode)
@@ -568,9 +561,11 @@ public class LibLouis : IDisposable
         ArgumentNullException.ThrowIfNull(tableList);
         ArgumentException.ThrowIfNullOrEmpty(input);
 
+        int length = CountUCSCharacters(input);
+
         // liblouis rejects anything from HYPHSTRING characters up, and would otherwise report it
         // as an ordinary hyphenation failure.
-        if (input.Length >= MaxHyphenationLength)
+        if (length >= MaxHyphenationLength)
         {
             throw new ArgumentException(
                 $"{nameof(input)} must be shorter than {MaxHyphenationLength} characters.", nameof(input));
@@ -580,8 +575,9 @@ public class LibLouis : IDisposable
 
         // liblouis writes one flag per character plus a NUL terminator into a caller-allocated
         // char buffer. inlen must not count the terminator: lou_hyphenate memcpy's exactly inlen
-        // characters rather than stopping at a NUL the way the translate functions do.
-        byte[] hyphens = new byte[input.Length + 1];
+        // widechars rather than stopping at a NUL the way the translate functions do, so an
+        // inlen in the wrong unit reads straight past the input buffer.
+        byte[] hyphens = new byte[length + 1];
 
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
 
@@ -589,16 +585,16 @@ public class LibLouis : IDisposable
 
         lock (_lock)
         {
-            success = NativeMethods.lou_hyphenate(tables, inputBuffer, input.Length, hyphens, mode) > 0;
+            success = NativeMethods.lou_hyphenate(tables, inputBuffer, length, hyphens, mode) > 0;
         }
-        
+
         if (!success)
         {
             throw new LibLouisException($"Hyphenation failed {_lastLogMessage}");
         }
 
         // The flags are ASCII digits; the trailing terminator is not part of the result.
-        return Encoding.ASCII.GetString(hyphens, 0, input.Length);
+        return Encoding.ASCII.GetString(hyphens, 0, length);
     }
 
     /// <summary>

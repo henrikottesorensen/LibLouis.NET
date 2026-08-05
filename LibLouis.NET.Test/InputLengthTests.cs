@@ -7,19 +7,20 @@ using Xunit;
 namespace LibLouis.NET.Test;
 
 /// <summary>
-/// The wrapper passes inlen as input.Length + 1, which looks like it counts the NUL terminator
-/// as a character to translate. It does not, and these tests pin that down so the "+ 1" is not
-/// removed - or relied on - by mistake:
+/// inlen is a widechar count that excludes the NUL terminator, matching the header and what
+/// upstream callers pass. These tests pin down the two properties that depend on it:
 ///
-///   * lou_translateString clamps the length at the first NUL
-///     (<c>while (k &lt; *inlen &amp;&amp; inbufx[k]) k++;</c>, lou_translateString.c:1191), so the
-///     terminator is never translated.
-///   * It then overwrites *inlen with the number of characters actually consumed
-///     (lou_translateString.c:1354) before computing outputPos, so the inflated value cannot
-///     reach the position loops and cannot push a write past the caller's array.
+///   * The terminator is not translated as if it were text. The buffer stays NUL terminated
+///     (PrepareUCSInputBuffer's job) and lou_translateString clamps at the first NUL
+///     (<c>while (k &lt; *inlen &amp;&amp; inbufx[k]) k++;</c>, lou_translateString.c:1191), so an
+///     embedded NUL still ends the input.
+///   * Nothing is written past the position arrays the argument checks demand. liblouis
+///     overwrites *inlen with the number of characters actually consumed
+///     (lou_translateString.c:1354) before computing outputPos.
 ///
-/// Both properties depend on the input buffer really being NUL terminated, which is
-/// PrepareUCSInputBuffer's job.
+/// The wrapper previously passed input.Length + 1 here. That was safe - the clamp at :1191 and
+/// the overwrite at :1354 between them made the extra count unreachable - but it left
+/// correctness resting on two undocumented internals instead of the documented contract.
 /// </summary>
 public class InputLengthTests
 {
