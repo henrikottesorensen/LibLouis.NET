@@ -26,7 +26,11 @@ public static partial class NativeMethods
     /// <param name="outbuf">Buffer for output.</param>
     /// <param name="outlen">Length of buffer for output (make sure to allow for additional characters).</param>
     /// <param name="formtype">Formtype is not used.</param>
-    /// <param name="spacing">Spacing is not used.</param>
+    /// <param name="spacing">
+    /// In/out buffer of single bytes, not widechars, or NULL. Must be at least
+    /// max(inlen, outlen) + 1 bytes long; see <see cref="LibLouis.PrepareSpacingBuffer"/> for why
+    /// the header's "at least inlen" is not enough.
+    /// </param>
     /// <param name="outputPos">Array of original-to-braille positions.</param>
     /// <param name="inputPos">Array of braille-to-original positions.</param>
     /// <param name="cursorPos">Cursor position is not used.</param>
@@ -41,7 +45,7 @@ public static partial class NativeMethods
         byte[] outbuf,
         ref int outlen,
         TypeForm[]? formtype,
-        string? spacing,
+        byte[]? spacing,
         int[] outputPos,
         int[] inputPos,
         ref int cursorPos,
@@ -56,7 +60,10 @@ public static partial class NativeMethods
     /// <param name="outbuf">Buffer for output.</param>
     /// <param name="outlen">Length of buffer for output (make sure to allow for additional characters).</param>
     /// <param name="formtype">Formtype is not used.</param>
-    /// <param name="spacing">Spacing is not used.</param>
+    /// <param name="spacing">
+    /// In/out buffer of single bytes, not widechars, or NULL. Must be at least
+    /// max(inlen, outlen) + 1 bytes long; back-translation memsets outlen of them before it starts.
+    /// </param>
     /// <param name="outputPos">Array of original-to-braille positions.</param>
     /// <param name="inputPos">Array of braille-to-original positions.</param>
     /// <param name="cursorPos">Cursor position is not used.</param>
@@ -71,7 +78,7 @@ public static partial class NativeMethods
         byte[] outbuf,
         ref int outlen,
         TypeForm[]? formtype,
-        string? spacing,
+        byte[]? spacing,
         int[] outputPos,
         int[] inputPos,
         ref int cursorPos,
@@ -86,7 +93,11 @@ public static partial class NativeMethods
     /// <param name="outbuf">Buffer for output.</param>
     /// <param name="outlen">Length of buffer for output (make sure to allow for additional characters).</param>
     /// <param name="formtype">Formtype is not used.</param>
-    /// <param name="spacing">The spacing parameter is used to indicate differences in spacing between the input string and the translated output string. It is also of the same length as the string pointed to by *inbuf. If this parameter is NULL, no spacing information is computed..</param>
+    /// <param name="spacing">
+    /// In/out buffer of single bytes, not widechars, or NULL. Must be at least
+    /// max(inlen, outlen) + 1 bytes long; see <see cref="LibLouis.PrepareSpacingBuffer"/> for why
+    /// the header's "at least inlen" is not enough.
+    /// </param>
     /// <param name="mode">Specifies how the translation should be done. They are all powers of 2, so that a combined mode can be specified by adding up different values. </param>
     /// <returns>0 if error, 1 if success.</returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
@@ -98,7 +109,7 @@ public static partial class NativeMethods
         byte[] outbuf,
         ref int outlen,
         TypeForm[]? formtype,
-        string? spacing,
+        byte[]? spacing,
         TranslationMode mode);
 
     /// <summary>
@@ -110,7 +121,10 @@ public static partial class NativeMethods
     /// <param name="outbuf">Buffer for output.</param>
     /// <param name="outlen">Length of buffer for output (make sure to allow for additional characters).</param>
     /// <param name="formtype">Formtype is not used.</param>
-    /// <param name="spacing">Spacing is not used.</param>
+    /// <param name="spacing">
+    /// In/out buffer of single bytes, not widechars, or NULL. Must be at least
+    /// max(inlen, outlen) + 1 bytes long; back-translation memsets outlen of them before it starts.
+    /// </param>
     /// <param name="mode">Mode is not used.</param>
     /// <returns>0 if error, 1 if success.</returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
@@ -122,7 +136,7 @@ public static partial class NativeMethods
         byte[] outbuf,
         ref int outlen,
         TypeForm[]? formtype,
-        string? spacing,
+        byte[]? spacing,
         TranslationMode mode);
 
     /// <summary>
