@@ -44,4 +44,24 @@ public class TranslatedString
     /// translation only: back-translation zero-fills the buffer and reports nothing.
     /// </remarks>
     public bool[]? OutputDots78 { get; set; }
+
+    /// <summary>
+    /// Per output cell, the spacing information liblouis reported: '*' where it reported nothing,
+    /// an ASCII digit carried over from the input character that produced the cell, or '1' where
+    /// back-translation inserted a space. <see langword="null"/> when the translation ran without a
+    /// spacing argument, because liblouis only computes this when one is supplied.
+    /// </summary>
+    /// <remarks>
+    /// This is the write-back half of the native spacing parameter, which is in/out: liblouis
+    /// answers in the same buffer it reads the request from. It cannot be reported through the
+    /// caller's <c>spacing</c> string - a .NET string is immutable, which is why the parameter
+    /// silently did nothing before - and it is indexed per output cell rather than per input
+    /// character, so it would not fit there anyway.
+    /// <para>
+    /// Shorter than <see cref="Output"/> when a forward translation grew the text: that direction
+    /// only copies its answer back over as many bytes as the input was long, so the cells past that
+    /// point have no answer. Back-translation reports the full output.
+    /// </para>
+    /// </remarks>
+    public string? OutputSpacing { get; set; }
 }
