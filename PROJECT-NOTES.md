@@ -1,13 +1,13 @@
 # LibLouis.NET — state of play
 
-Written 2026-08-06. Two sessions have been working this repository in parallel: a packaging and CI
+Written 2026-08-06, refreshed after PR #16 was opened. Two sessions have been working this repository in parallel: a packaging and CI
 strand, and a P/Invoke audit strand. This is the state of both.
 
 ---
 
 ## 1. Pull requests
 
-Nine open, all green. The "skipping" check in each is the publish job, which is gated on a `v*` tag.
+Ten open, all green. The "skipping" check in each is the publish job, which is gated on a `v*` tag.
 
 | PR | What | Depends on | CI |
 | --- | --- | --- | --- |
@@ -20,6 +20,7 @@ Nine open, all green. The "skipping" check in each is the publish job, which is 
 | [#13](https://github.com/Notalib/LibLouis.NET/pull/13) | Compile and pack on images chosen for the job | — | 6 pass |
 | [#14](https://github.com/Notalib/LibLouis.NET/pull/14) | Convert the solution to slnx | #7 | 6 pass |
 | [#15](https://github.com/Notalib/LibLouis.NET/pull/15) | Run the upstream braille specs against the wrapper | #10 | 6 pass |
+| [#16](https://github.com/Notalib/LibLouis.NET/pull/16) | Widen the braille specs from Danish to 102 upstream specs | #15 | 6 pass |
 
 Merged already: #5 (runtime package selection, win-arm64, GitHub Actions) and #8 (actions on Node 24).
 
@@ -27,7 +28,11 @@ Merged already: #5 (runtime package selection, win-arm64, GitHub Actions) and #8
 
 Independent, land in any order: **#6, #9, #11, #12, #13**.
 
-Stacked, land after their base: **#7** after #6, **#14** after #7, **#10** after #9, **#15** after #10.
+Stacked, land after their base: **#7** after #6, **#14** after #7, **#10** after #9, **#15** after #10,
+**#16** after #15.
+
+#16 sits four deep behind #9. That is the main structural risk in the queue: the longer the stacks
+sit, the more re-stacking they need, and none of them can merge until #9 does.
 
 ### Conflicts to expect
 
@@ -107,15 +112,9 @@ requirement is exactly the sort of thing that could change quietly. Diff that he
 `feature/upstream-yaml-tests` → **#15**, stacked on #10. Runs liblouis's own braille specs through
 the wrapper: three Danish specs, 10,524 cases, both directions, all passing.
 
-`yaml-specs-all` → **#16, not yet opened.** Widens to the full corpus.
-
-| | |
-| --- | --- |
-| Specs running | 142 of 142 |
-| Passing entirely | 102 |
-| With mismatches | 40 |
-| Cases | ~212,000 |
-| Crashes | none |
+`yaml-specs-all` → **#16**, stacked on #15. Widens from three Danish specs to 102 upstream specs
+covering roughly 60 languages, all passing. 40 specs are held back with their reasons recorded in
+`braille-specs/README.md`.
 
 Excluded deliberately: the eight dictionary harnesses at 200,000+ cases each. They would dominate
 every run for little extra signal; add them behind a switch if wanted.
@@ -162,10 +161,18 @@ Driving these would widen coverage *and* cover the untested API — the same job
 
 ### Open
 
-- **40 specs have mismatches, uncharacterised.** `no.yaml` 167/868, `ru.yaml` 39/140,
-  `de-g*-detailed-specs.yaml` 35/476 each. Expect a mix of further harness gaps and genuine
-  differences. **Bisect with a cold process per variant** — see the compile cache note below.
-- One spec fails to parse: a multi-line double-quoted scalar YamlDotNet rejects.
+The 40 held back divide into three groups, and the shape is more encouraging than the number:
+
+- **29 fail on table resolution, and are probably one root cause rather than 29.** 22 report no
+  table matching a query, 7 resolve to a table other than the one `__assert-match` names. The
+  queries look well formed (`language:bn grade:1`), so suspect which tables reach `lou_indexTables`
+  or which liblouis manages to analyse. Cheapest place to start.
+- **10 disagree on translation output**, a fraction of cases each: `no.yaml` 167/868, `ru.yaml`
+  39/140, `de-g0`/`de-g1-detailed-specs.yaml` 35/476. The interesting group — either an unmodelled
+  per-case option or a real difference between wrapper and upstream.
+- **1 does not parse**: a multi-line double-quoted scalar YamlDotNet rejects.
+
+**Bisect with a cold process per variant** — see the compile cache note below.
 
 ---
 
