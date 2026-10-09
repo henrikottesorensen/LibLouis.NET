@@ -35,7 +35,7 @@ When a project references such a package, the .NET SDK records every one of thes
 application's `.deps.json` under `runtimeTargets`, tagged with its RID:
 
 ```json
-"runtime.win-x64.liblouis/3.38.0": {
+"runtime.win-x64.liblouis/3.39.0": {
   "runtimeTargets": {
     "runtimes/win-x64/native/liblouis.dll": { "rid": "win-x64", "assetType": "native" }
   }
@@ -126,7 +126,7 @@ mean x86:
 - gnulib's `metadata.c` assigns a `DIR *` to a `struct gl_directory *`. clang rejects it, so that
   one diagnostic is turned back into a warning through `CFLAGS`.
 
-Both were still present in liblouis 3.38.0, so expect them to survive an upstream bump.
+Both were still present in liblouis 3.39.0, so expect them to survive an upstream bump.
 
 ### Only the library is built
 
