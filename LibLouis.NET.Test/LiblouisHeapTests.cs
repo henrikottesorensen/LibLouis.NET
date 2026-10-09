@@ -147,7 +147,7 @@ public unsafe class LiblouisHeapTests
             Assert.NotNull(table);
             Assert.EndsWith("da-dk-g26.ctb", table, StringComparison.Ordinal);
 
-            Assert.NotEmpty(LibLouis.Instance.Translate(TablePaths(), "Første linje", 64, null, null, TranslationMode.Regular));
+            Assert.NotEmpty(LibLouis.Instance.Translate(TablePaths(), "Første linje", 64, null, TranslationMode.Regular));
         }
     }
 }

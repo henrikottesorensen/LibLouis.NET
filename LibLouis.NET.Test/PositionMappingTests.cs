@@ -32,7 +32,6 @@ public class PositionMappingTests
             input,
             outputLength,
             null,
-            null,
             new int[input.Length],
             new int[outputLength],
             0,
@@ -131,7 +130,7 @@ public class PositionMappingTests
         int[] scratchInput = new int[outputLength];
 
         TranslatedString result = LibLouis.Instance.Translate(
-            TablePaths(), input, outputLength, null, null, scratchOutput, scratchInput, 0, TranslationMode.Regular);
+            TablePaths(), input, outputLength, null, scratchOutput, scratchInput, 0, TranslationMode.Regular);
 
         Assert.Equal(scratchOutput, result.OutputPosition);
         Assert.Equal(scratchInput[..result.Output.Length], result.InputPosition);
@@ -169,7 +168,6 @@ public class PositionMappingTests
             input,
             outputLength,
             null,
-            null,
             new int[input.Length],
             new int[outputLength],
             input.IndexOf('b', StringComparison.Ordinal),
@@ -196,7 +194,6 @@ public class PositionMappingTests
             input,
             outputLength,
             null,
-            null,
             new int[input.Length],
             new int[outputLength],
             input.Length,
@@ -218,7 +215,6 @@ public class PositionMappingTests
             TablePaths(),
             braille,
             outputLength,
-            null,
             null,
             new int[braille.Length],
             new int[outputLength],
@@ -242,7 +238,6 @@ public class PositionMappingTests
             TablePaths(),
             input,
             outputLength,
-            null,
             null,
             new int[input.Length],
             new int[outputLength],

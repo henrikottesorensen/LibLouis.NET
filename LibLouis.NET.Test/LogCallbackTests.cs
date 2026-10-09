@@ -33,7 +33,7 @@ public class LogCallbackTests
         // Any failing call makes liblouis log; a table that cannot be compiled is the simplest.
         Assert.Throws<LibLouisException>(
             () => LibLouis.Instance.Translate(
-                ["no-such-table-at-all.ctb"], "x", 8, null, null, TranslationMode.Regular));
+                ["no-such-table-at-all.ctb"], "x", 8, null, TranslationMode.Regular));
 
         Assert.NotEmpty(logger.Messages);
     }

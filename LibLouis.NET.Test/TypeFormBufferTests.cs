@@ -92,7 +92,7 @@ public class TypeFormBufferTests
         TypeForm[] untouched = (TypeForm[])typeform.Clone();
 
         string output = LibLouis.Instance.Translate(
-            TablePaths(), Input, Input.Length * 2, typeform, null, TranslationMode.Regular);
+            TablePaths(), Input, Input.Length * 2, typeform, TranslationMode.Regular);
 
         Assert.Equal(ExpectedOutput, output);
         Assert.Equal(untouched, typeform);
@@ -116,7 +116,6 @@ public class TypeFormBufferTests
             Input,
             outputLength,
             typeform,
-            null,
             new int[Input.Length],
             new int[outputLength],
             0,

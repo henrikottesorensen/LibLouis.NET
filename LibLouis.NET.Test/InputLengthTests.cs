@@ -54,7 +54,6 @@ public class InputLengthTests
             Input,
             outputLength,
             null,
-            null,
             outputPosition,
             new int[outputLength],
             0,
@@ -74,7 +73,7 @@ public class InputLengthTests
         const string input = "abc";
 
         string translated = LibLouis.Instance.Translate(
-            TablePaths(), input, input.Length * 4, null, null, TranslationMode.Regular);
+            TablePaths(), input, input.Length * 4, null, TranslationMode.Regular);
 
         Assert.DoesNotContain('\0', translated);
         Assert.Equal(input, translated);

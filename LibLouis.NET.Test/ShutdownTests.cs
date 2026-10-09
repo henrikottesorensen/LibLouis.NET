@@ -59,14 +59,14 @@ public class ShutdownTests
         WhileMarkedShutDown(() =>
         {
             Assert.Throws<InvalidOperationException>(
-                () => LibLouis.Instance.Translate(TablePaths(), "abc", 16, null, null, TranslationMode.Regular));
+                () => LibLouis.Instance.Translate(TablePaths(), "abc", 16, null, TranslationMode.Regular));
 
             Assert.Throws<InvalidOperationException>(
                 () => LibLouis.Instance.Translate(
-                    TablePaths(), "abc", 16, null, null, new int[16], new int[16], 0, TranslationMode.Regular));
+                    TablePaths(), "abc", 16, null, new int[16], new int[16], 0, TranslationMode.Regular));
 
             Assert.Throws<InvalidOperationException>(
-                () => LibLouis.Instance.BackTranslate(TablePaths(), "abc", 16, null, null, TranslationMode.Regular));
+                () => LibLouis.Instance.BackTranslate(TablePaths(), "abc", 16, null, TranslationMode.Regular));
 
             Assert.Throws<InvalidOperationException>(
                 () => LibLouis.Instance.CharactersToDots(TablePaths(), "abc"));

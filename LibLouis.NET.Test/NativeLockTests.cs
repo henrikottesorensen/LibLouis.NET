@@ -77,7 +77,7 @@ public class NativeLockTests
                     while (!cts.IsCancellationRequested)
                     {
                         string result = LibLouis.Instance.Translate(
-                            TablePaths(), input, 64, null, null, TranslationMode.Regular);
+                            TablePaths(), input, 64, null, TranslationMode.Regular);
 
                         if (result != expected)
                         {
