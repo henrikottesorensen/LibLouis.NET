@@ -354,6 +354,7 @@ public static class BrailleSpecReader
                 case "cursorOutPos":
                 case "maxOutputLength":
                 case "realInputLength":
+                case "expected_typeform":
                     parser.SkipThisAndNestedEvents();
                     unsupportedOption ??= $"test option: {key}";
                     break;

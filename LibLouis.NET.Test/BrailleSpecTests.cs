@@ -99,9 +99,10 @@ public class BrailleSpecTests(ITestOutputHelper output)
     {
         var expected = new SortedDictionary<string, int>(StringComparer.Ordinal)
         {
+            ["test option: expected_typeform"] = 17,
             ["test option: mode"] = 14,
             ["test option: outputPos"] = 5067,
-            ["test option: typeform"] = 391,
+            ["test option: typeform"] = 287,
             ["testmode: display"] = 5,
             ["testmode: hyphenate"] = 1198,
         };
