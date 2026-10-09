@@ -35,7 +35,7 @@ When a project references such a package, the .NET SDK records every one of thes
 application's `.deps.json` under `runtimeTargets`, tagged with its RID:
 
 ```json
-"runtime.win-x64.liblouis/3.33.0": {
+"runtime.win-x64.liblouis/3.38.0": {
   "runtimeTargets": {
     "runtimes/win-x64/native/liblouis.dll": { "rid": "win-x64", "assetType": "native" }
   }
