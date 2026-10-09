@@ -17,11 +17,8 @@ namespace LibLouis.NET;
 /// applying it to an input parameter would leak the buffer allocated for every call, so
 /// parameters keep using the built-in <see cref="Utf8StringMarshaller"/>.
 ///
-/// liblouis also has functions whose result the caller *is* expected to free (lou_findTable,
-/// lou_findTables, lou_getTableInfo, lou_listTables). Those use this marshaller too: the Windows
-/// binaries are built with mingw-w64 and allocate from msvcrt.dll while .NET frees through
-/// ucrtbase.dll, so releasing that memory from managed code would corrupt the heap. Leaking a
-/// bounded number of small strings is the safer trade.
+/// Results the caller *is* expected to free, such as lou_findTable's, use
+/// <see cref="UTF8StringLiblouisAllocatedMarshaller"/> instead.
 /// </remarks>
 [CustomMarshaller(typeof(string), MarshalMode.ManagedToUnmanagedOut, typeof(UTF8StringNoFreeMarshaller))]
 public static unsafe class UTF8StringNoFreeMarshaller
