@@ -73,6 +73,15 @@ to the metapackage — nothing else in the repository depends on the choice.
 `Directory.Build.props` is the single source of truth for the upstream version and its checksum;
 the shell scripts read the values back out of it.
 
+The solution is `LibLouis.NET.slnx`, the XML solution format, which needs a .NET SDK of 9.0.200 or
+later. An older SDK does not report that usefully: SDK 8 fails with `MSB4068: The element <Solution>
+is unrecognized`, which does not obviously mean the SDK is too old.
+
+There is deliberately no `global.json` declaring that floor. It would apply to every `dotnet`
+invocation in the repository, including inside the build container, which runs an older SDK and
+never touches the solution — it packs individual project files, which any SDK handles. Pinning the
+floor globally to satisfy one script would force the container's image up for no reason.
+
 | Command | Produces |
 | --- | --- |
 | `./build.sh` | Linux + Windows runtime packages and the metapackage, via the container. |

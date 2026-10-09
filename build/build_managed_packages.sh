@@ -21,10 +21,10 @@ if [ -n "${NUGET_LOCAL_FEED:-}" ]; then
     restore_args="-p:RestoreAdditionalProjectSources=$NUGET_LOCAL_FEED"
 fi
 
-dotnet build --configuration Release $restore_args "$REPO_ROOT/LibLouis.NET.sln"
+dotnet build --configuration Release $restore_args "$REPO_ROOT/LibLouis.NET.slnx"
 
 if [ -z "${SKIP_TESTS:-}" ]; then
-    dotnet test --configuration Release --no-build "$REPO_ROOT/LibLouis.NET.sln"
+    dotnet test --configuration Release --no-build "$REPO_ROOT/LibLouis.NET.slnx"
 fi
 
 dotnet pack --configuration Release --no-build \
