@@ -178,4 +178,77 @@ public class PositionMappingTests
         Assert.InRange(result.CursorPosition, 0, result.Output.Length - 1);
         Assert.False(char.IsLowSurrogate(result.Output[result.CursorPosition]));
     }
+
+    /// <summary>
+    /// A cursor after the last character - where it sits while appending - has to stay after the
+    /// last character, not move back onto it.
+    /// </summary>
+    [Theory]
+    [InlineData("abc")]
+    [InlineData("a\U0001D11E")]
+    [InlineData("")]
+    public void CursorAtEndOfInputStaysAtEndOfOutput(string input)
+    {
+        int outputLength = Math.Max(16, input.Length * 4);
+
+        TranslatedString result = LibLouis.Instance.Translate(
+            TablePaths(),
+            input,
+            outputLength,
+            null,
+            null,
+            new int[input.Length],
+            new int[outputLength],
+            input.Length,
+            TranslationMode.Regular);
+
+        Assert.Equal(result.Output.Length, result.CursorPosition);
+    }
+
+    /// <summary>
+    /// The same going the other way.
+    /// </summary>
+    [Fact]
+    public void BackTranslateCursorAtEndOfInputStaysAtEndOfOutput()
+    {
+        string braille = Translate("abc").Output;
+        int outputLength = braille.Length * 4;
+
+        TranslatedString result = LibLouis.Instance.BackTranslate(
+            TablePaths(),
+            braille,
+            outputLength,
+            null,
+            null,
+            new int[braille.Length],
+            new int[outputLength],
+            braille.Length,
+            TranslationMode.Regular);
+
+        Assert.Equal(result.Output.Length, result.CursorPosition);
+    }
+
+    /// <summary>
+    /// The last character is still a character: only the position after it is the end.
+    /// </summary>
+    [Fact]
+    public void CursorOnLastCharacterStaysOnIt()
+    {
+        const string input = "abc";
+
+        int outputLength = input.Length * 4;
+
+        TranslatedString result = LibLouis.Instance.Translate(
+            TablePaths(),
+            input,
+            outputLength,
+            null,
+            null,
+            new int[input.Length],
+            new int[outputLength],
+            input.Length - 1,
+            TranslationMode.Regular);
+
+        Assert.Equal(result.OutputPosition[^1], result.CursorPosition);
+    }
 }
