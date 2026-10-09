@@ -31,8 +31,9 @@
   
   <ItemGroup>
     <!--
-      Nota's tables go to their own output directory. Five of them share a file name with an
-      upstream table and differ from it, and LibLouis.NET.Tables copies the upstream set into
+      Nota's tables go to their own output directory. 22 of the 30 share a file name with an
+      upstream table and differ from it - five of them among the seven the tests load, see
+      nota-tables/README.md - and LibLouis.NET.Tables copies the upstream set into
       tables/, so putting both in one directory makes which copy a test gets depend on MSBuild item
       ordering. Keeping them apart makes every test say which set it means.
     -->

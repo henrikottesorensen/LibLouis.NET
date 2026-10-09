@@ -2,9 +2,10 @@
 
 Kept in their own directory, and copied to `nota-tables/` in the output rather than `tables/`.
 
-`LibLouis.NET.Tables` copies the upstream table set into `tables/`. Five of the files here share a
-name with an upstream table and differ from it, so a single shared directory would make which copy
-a test gets depend on MSBuild item ordering. Separate directories mean every test states which set
+`LibLouis.NET.Tables` copies the upstream table set into `tables/`. Twenty two of the thirty files
+here share a name with an upstream table and differ from it - five of them among the seven the tests
+actually load (see below) - so a single shared directory would make which copy a test gets depend on
+MSBuild item ordering. Separate directories mean every test states which set
 it means, and the upstream braille specs can be checked against upstream tables without this set
 shadowing them.
 
