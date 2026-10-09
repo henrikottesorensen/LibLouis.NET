@@ -30,6 +30,10 @@ public class TranslatedString
     /// Where the cursor ended up, as an index into <see cref="Output"/>. Negative when the
     /// translation was given no cursor.
     /// </summary>
+    /// <remarks>
+    /// A cursor at the end of the input - its length - comes back at the end of the output, its
+    /// length, so text appended there stays after the translation.
+    /// </remarks>
     public required int CursorPosition { get; set; }
 
     /// <summary>

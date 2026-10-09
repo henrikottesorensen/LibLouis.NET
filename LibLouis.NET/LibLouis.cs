@@ -367,7 +367,8 @@ public class LibLouis
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
         TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
 
-        // The cursor arrives as a .NET string index and liblouis wants a widechar index.
+        // The cursor arrives as a .NET string index and liblouis wants a widechar index. A cursor
+        // at the end of the input is not passed on, but placed at the end of the output below.
         int[] inputOffsets = Utf16OffsetOfWidechar(input);
         int widecharCursor = ToWidecharCursor(input, cursorPosition);
 
@@ -393,7 +394,7 @@ public class LibLouis
         return new TranslatedString
         {
             Output = output,
-            CursorPosition = mappedCursor,
+            CursorPosition = IsCursorAtEnd(input, cursorPosition) ? output.Length : mappedCursor,
             InputPosition = mappedInputPosition,
             OutputPosition = mappedOutputPosition,
             OutputDots78 = ExtractOutputDots78(typeFormBuffer, outputLength),
@@ -512,7 +513,8 @@ public class LibLouis
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
         TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
 
-        // The cursor arrives as a .NET string index and liblouis wants a widechar index.
+        // The cursor arrives as a .NET string index and liblouis wants a widechar index. A cursor
+        // at the end of the input is not passed on, but placed at the end of the output below.
         int[] inputOffsets = Utf16OffsetOfWidechar(input);
         int widecharCursor = ToWidecharCursor(input, cursorPosition);
 
@@ -538,7 +540,7 @@ public class LibLouis
         return new TranslatedString
         {
             Output = output,
-            CursorPosition = mappedCursor,
+            CursorPosition = IsCursorAtEnd(input, cursorPosition) ? output.Length : mappedCursor,
             InputPosition = mappedInputPosition,
             OutputPosition = mappedOutputPosition,
         };
@@ -709,21 +711,30 @@ public class LibLouis
     }
 
     /// <summary>
+    /// Whether the cursor sits at the end of <paramref name="input"/> - after its last character,
+    /// where a caller appending text puts it.
+    /// </summary>
+    private static bool IsCursorAtEnd(string input, int cursorPosition) => cursorPosition >= input.Length;
+
+    /// <summary>
     /// Converts a cursor given as a .NET string index into the widechar index liblouis expects.
     /// </summary>
     /// <remarks>
-    /// Negative means "no cursor" to liblouis and is passed through untouched.
+    /// Returns -1, "no cursor" to liblouis, for a negative cursor and for one at the end of the
+    /// input. liblouis reports the cursor back by reading <c>outputPos[*cursorPos]</c>
+    /// (lou_translateString.c:1389, lou_backTranslateString.c:350), which is only in bounds for a
+    /// character of the input: at the end it reads one past the array, and for anything negative
+    /// but -1 it reads before it. The caller places an end cursor itself, see
+    /// <see cref="IsCursorAtEnd"/>.
     /// </remarks>
     private int ToWidecharCursor(string input, int cursorPosition)
     {
-        if (cursorPosition < 0 || input.Length == 0)
+        if (cursorPosition < 0 || IsCursorAtEnd(input, cursorPosition))
         {
-            return cursorPosition;
+            return -1;
         }
 
-        int[] widechars = WidecharOfUtf16Offset(input);
-
-        return widechars[Math.Clamp(cursorPosition, 0, input.Length - 1)];
+        return WidecharOfUtf16Offset(input)[cursorPosition];
     }
 
     /// <summary>
@@ -779,7 +790,7 @@ public class LibLouis
             inputPosition[t] = inputOffsets[Math.Clamp(character, 0, lastInputWidechar)];
         }
 
-        // A negative cursor means "no cursor" to liblouis; leave it alone.
+        // -1 means "no cursor" to liblouis; leave it alone.
         int cursorPosition = widecharCursor < 0 || output.Length == 0
             ? widecharCursor
             : outputOffsets[Math.Clamp(widecharCursor, 0, lastOutputWidechar)];

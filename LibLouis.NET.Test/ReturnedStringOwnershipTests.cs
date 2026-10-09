@@ -6,15 +6,13 @@ using Xunit;
 namespace LibLouis.NET.Test;
 
 /// <summary>
-/// liblouis owns every string it returns, so the wrapper must not hand those pointers to the
-/// marshaller's Free.
+/// The strings liblouis returns must not be freed by the default marshaller.
 ///
 ///   * lou_setDataPath / lou_getDataPath return a pointer into a static char[MAXSTRING] inside
 ///     liblouis (compileTranslationTable.c:59-73). Passing that to free() is undefined behaviour
 ///     on every platform.
-///   * lou_findTable returns malloc'd memory. Our Windows binaries are built with mingw-w64 and
-///     allocate from msvcrt.dll, while .NET frees through ucrtbase.dll - different heaps, so
-///     freeing it from managed code corrupts the heap there.
+///   * lou_findTable returns malloc'd memory the caller frees, but with liblouis's C runtime
+///     rather than the CoTaskMemFree .NET would use on Windows - see LiblouisHeapTests.
 /// </summary>
 public class ReturnedStringOwnershipTests
 {

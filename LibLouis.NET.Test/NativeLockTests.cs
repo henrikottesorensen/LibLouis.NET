@@ -180,7 +180,7 @@ public class NativeLockTests
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
 
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "LibLouis.NET.sln")))
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "LibLouis.NET.slnx")))
         {
             directory = directory.Parent;
         }

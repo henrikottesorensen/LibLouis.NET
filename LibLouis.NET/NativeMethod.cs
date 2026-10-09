@@ -219,13 +219,12 @@ public static partial class NativeMethods
     internal static partial void lou_indexTables(string?[] tables);
 
     /// <returns>
-    /// The best matching table name, or <see langword="null"/> when there is no match. liblouis
-    /// documents this as the caller's to free, but the memory comes from liblouis's own C runtime
-    /// - see <see cref="UTF8StringNoFreeMarshaller"/> for why we leak it instead.
+    /// The best matching table name, or <see langword="null"/> when there is no match. The caller
+    /// frees it, with liblouis's own C runtime - see <see cref="UTF8StringLiblouisAllocatedMarshaller"/>.
     /// </returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_findTable", StringMarshalling = StringMarshalling.Utf8)]
-    [return: MarshalUsing(typeof(UTF8StringNoFreeMarshaller))]
+    [return: MarshalUsing(typeof(UTF8StringLiblouisAllocatedMarshaller))]
     internal static partial string? lou_findTable(string query);
 
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
