@@ -36,8 +36,9 @@ public sealed record BrailleSpecCase(
 }
 
 /// <summary>
-/// A parsed spec: the cases it yields, and a tally of the constructs that were recognised but not
-/// driven, so what is being skipped stays visible rather than becoming invisible coverage loss.
+/// A parsed spec: the cases it yields, and how many spec entries were dropped for each construct
+/// that was recognised but not driven, so what is being skipped stays visible rather than becoming
+/// invisible coverage loss.
 /// </summary>
 public sealed record BrailleSpec(
     IReadOnlyList<BrailleSpecCase> Cases,
@@ -101,6 +102,7 @@ public static class BrailleSpecReader
         string displayTable = string.Empty;
         var tables = new List<(string Query, string? AssertMatch)>();
         TestMode mode = TestMode.Forward;
+        string? unsupportedMode = null;
 
         // Consecutive table keys accumulate, but the first one after a tests block starts a fresh
         // set rather than adding to the one just used.
@@ -127,11 +129,11 @@ public static class BrailleSpecReader
                     break;
 
                 case "flags":
-                    mode = ReadFlags(parser, skipped);
+                    (mode, unsupportedMode) = ReadFlags(parser);
                     break;
 
                 case "tests":
-                    ReadTests(parser, specFile, tables, displayTable, mode, cases, skipped);
+                    ReadTests(parser, specFile, tables, displayTable, mode, unsupportedMode, cases, skipped);
                     tablesUsed = true;
                     break;
 
@@ -182,11 +184,12 @@ public static class BrailleSpecReader
         return (string.Join(' ', terms), assertMatch);
     }
 
-    private static TestMode ReadFlags(IParser parser, IDictionary<string, int> skipped)
+    private static (TestMode Mode, string? Unsupported) ReadFlags(IParser parser)
     {
         parser.Consume<MappingStart>();
 
         TestMode mode = TestMode.Forward;
+        string? unsupported = null;
 
         while (parser.Current is not MappingEnd)
         {
@@ -198,33 +201,28 @@ public static class BrailleSpecReader
                 throw new NotSupportedException($"unsupported flag '{key}'");
             }
 
-            mode = ParseTestMode(value, skipped);
+            (mode, unsupported) = ParseTestMode(value);
         }
 
         parser.Consume<MappingEnd>();
 
-        return mode;
+        return (mode, unsupported);
     }
 
     /// <summary>
     /// hyphenate and display are liblouis features this harness does not drive yet — they map to
-    /// <c>Hyphenate</c> and <c>DotsToCharacters</c>/<c>CharactersToDots</c> — so their cases are
-    /// counted and dropped. An unrecognised mode still throws.
+    /// <c>Hyphenate</c> and <c>DotsToCharacters</c>/<c>CharactersToDots</c> — so they come back as
+    /// <see cref="TestMode.Unsupported"/>, named so the entries they drop can be counted. An
+    /// unrecognised mode still throws.
     /// </summary>
-    private static TestMode ParseTestMode(string value, IDictionary<string, int> skipped) => value switch
+    private static (TestMode Mode, string? Unsupported) ParseTestMode(string value) => value switch
     {
-        "forward" => TestMode.Forward,
-        "backward" => TestMode.Backward,
-        "bothDirections" => TestMode.BothDirections,
-        "hyphenate" or "hyphenateBraille" or "display" => Skip($"testmode: {value}", skipped),
+        "forward" => (TestMode.Forward, null),
+        "backward" => (TestMode.Backward, null),
+        "bothDirections" => (TestMode.BothDirections, null),
+        "hyphenate" or "hyphenateBraille" or "display" => (TestMode.Unsupported, $"testmode: {value}"),
         _ => throw new NotSupportedException($"unsupported testmode '{value}'"),
     };
-
-    private static TestMode Skip(string construct, IDictionary<string, int> skipped)
-    {
-        skipped[construct] = skipped.TryGetValue(construct, out int n) ? n + 1 : 1;
-        return TestMode.Unsupported;
-    }
 
     private static void ReadTests(
         IParser parser,
@@ -232,6 +230,7 @@ public static class BrailleSpecReader
         List<(string Query, string? AssertMatch)> tables,
         string displayTable,
         TestMode mode,
+        string? unsupportedMode,
         List<BrailleSpecCase> cases,
         IDictionary<string, int> skipped)
     {
@@ -262,16 +261,20 @@ public static class BrailleSpecReader
 
             var xfail = XFail.None;
             TestMode entryMode = mode;
+            string? unsupported = unsupportedMode;
 
             if (parser.Current is MappingStart)
             {
-                (xfail, entryMode) = ReadTestOptions(parser, mode, skipped);
+                (xfail, entryMode, unsupported) = ReadTestOptions(parser, mode, unsupportedMode);
             }
 
             parser.Consume<SequenceEnd>();
 
-            if (entryMode == TestMode.Unsupported)
+            // Counted once per dropped entry, under the construct that dropped it, so the tally says
+            // how much of the spec went unchecked.
+            if (unsupported is not null)
             {
+                skipped[unsupported] = skipped.TryGetValue(unsupported, out int n) ? n + 1 : 1;
                 continue;
             }
 
@@ -315,12 +318,16 @@ public static class BrailleSpecReader
         Both = Forward | Backward,
     }
 
-    private static (XFail XFail, TestMode Mode) ReadTestOptions(
-        IParser parser, TestMode mode, IDictionary<string, int> skipped)
+    private static (XFail XFail, TestMode Mode, string? Unsupported) ReadTestOptions(
+        IParser parser, TestMode mode, string? unsupportedMode)
     {
         parser.Consume<MappingStart>();
 
         var xfail = XFail.None;
+
+        // Kept apart from the mode: a testmode later in the same options may replace the mode, but
+        // must not bring back an entry an unsupported option has already dropped.
+        string? unsupportedOption = null;
 
         while (parser.Current is not MappingEnd)
         {
@@ -333,7 +340,7 @@ public static class BrailleSpecReader
                     break;
 
                 case "testmode":
-                    mode = ParseTestMode(parser.Consume<Scalar>().Value, skipped);
+                    (mode, unsupportedMode) = ParseTestMode(parser.Consume<Scalar>().Value);
                     break;
 
                 // Options liblouis supports that this harness does not drive. Each changes what the
@@ -348,7 +355,7 @@ public static class BrailleSpecReader
                 case "maxOutputLength":
                 case "realInputLength":
                     parser.SkipThisAndNestedEvents();
-                    mode = Skip($"test option: {key}", skipped);
+                    unsupportedOption ??= $"test option: {key}";
                     break;
 
                 default:
@@ -358,7 +365,7 @@ public static class BrailleSpecReader
 
         parser.Consume<MappingEnd>();
 
-        return (xfail, mode);
+        return (xfail, mode, unsupportedOption ?? unsupportedMode);
     }
 
     /// <summary>

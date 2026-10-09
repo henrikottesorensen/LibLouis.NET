@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 
 using Xunit;
+using Xunit.Abstractions;
 
 namespace LibLouis.NET.Test;
 
@@ -25,7 +26,7 @@ namespace LibLouis.NET.Test;
 /// buries a real regression in an unreadable log; a single failure listing every mismatch is more
 /// use than ten thousand separate red entries.
 /// </remarks>
-public class BrailleSpecTests
+public class BrailleSpecTests(ITestOutputHelper output)
 {
     private static readonly string SpecDirectory =
         Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "braille-specs");
@@ -67,7 +68,7 @@ public class BrailleSpecTests
             {
                 try
                 {
-                    RunSpec(specFile);
+                    RunSpec(specFile, output);
                 }
                 catch (Exception ex)
                 {
@@ -85,7 +86,42 @@ public class BrailleSpecTests
         }
     }
 
-    private static void RunSpec(string specFile)
+    /// <summary>
+    /// The entries the specs drop, summed over every spec per construct, so coverage the harness
+    /// gains or loses shows up here rather than only in output nobody reads on a passing run.
+    /// </summary>
+    /// <remarks>
+    /// Update the numbers when they change for a known reason - upstream specs re-copied, or the
+    /// harness learning to drive a construct - and say which in the commit.
+    /// </remarks>
+    [Fact]
+    public void SkippedEntriesMatchTheRecordedTally()
+    {
+        var expected = new SortedDictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["test option: mode"] = 14,
+            ["test option: outputPos"] = 5067,
+            ["test option: typeform"] = 391,
+            ["testmode: display"] = 5,
+            ["testmode: hyphenate"] = 1198,
+        };
+
+        var actual = new SortedDictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (string path in Directory.EnumerateFiles(SpecDirectory, "*.yaml"))
+        {
+            foreach ((string construct, int count) in BrailleSpecReader.Read(path).SkippedConstructs)
+            {
+                actual[construct] = actual.GetValueOrDefault(construct) + count;
+            }
+        }
+
+        Assert.True(
+            expected.SequenceEqual(actual),
+            $"The specs now have {DescribeSkipped(actual)}; recorded were {DescribeSkipped(expected)}.");
+    }
+
+    private static void RunSpec(string specFile, ITestOutputHelper output)
     {
         BrailleSpec spec = BrailleSpecReader.Read(Path.Combine(SpecDirectory, specFile));
 
@@ -97,7 +133,6 @@ public class BrailleSpecTests
 
         foreach (BrailleSpecCase testCase in spec.Cases)
         {
-
             string table = ResolveTable(testCase, TableCache.Value);
             string? actual = Run(testCase, table);
             bool matched = actual == testCase.Expected;
@@ -118,14 +153,24 @@ public class BrailleSpecTests
             }
         }
 
+        // What was not checked is part of the result: a spec that drops most of its entries passes as
+        // easily as one that checks them all.
+        string skipped = DescribeSkipped(spec.SkippedConstructs);
+
+        output.WriteLine($"{specFile}: {checkedCount} cases checked, {skipped}");
 
         Assert.True(
             mismatches.Count == 0,
             $"{specFile}: {mismatches.Count} of {checkedCount} cases did not match upstream " +
-            $"({unexpectedPasses.Count} xfail cases passed unexpectedly).\n  " +
+            $"({unexpectedPasses.Count} xfail cases passed unexpectedly; {skipped}).\n  " +
             string.Join("\n  ", mismatches.Take(25)) +
             (mismatches.Count > 25 ? $"\n  ... and {mismatches.Count - 25} more" : string.Empty));
     }
+
+    private static string DescribeSkipped(IReadOnlyDictionary<string, int> skipped) =>
+        skipped.Count == 0
+            ? "no entries skipped"
+            : $"{skipped.Values.Sum()} entries skipped ({string.Join(", ", skipped.Select(s => $"{s.Key}: {s.Value}"))})";
 
     private static string? Run(BrailleSpecCase testCase, string table)
     {
@@ -148,9 +193,8 @@ public class BrailleSpecTests
         }
     }
 
-    // Every query from every spec is resolved once, up front, before any translation runs.
-    // lou_findTable's return value is freed by the marshaller with the wrong allocator (P/Invoke
-    // audit item 3), so interleaving these calls with translations corrupts the native heap.
+    // Every query from every spec is resolved once, up front, and shared by every spec's test, so
+    // the hundred-odd specs do not each re-run the same lou_findTable queries.
     private static readonly Lazy<Dictionary<string, string>> TableCache = new(() =>
     {
         LibLouis.Instance.IndexTables(
