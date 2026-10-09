@@ -17,6 +17,10 @@ public unsafe class LiblouisHeapTests
 {
     private static readonly string[] Tables = ["da-dk-g26.ctb", "da-dk-g16-markers.ctb"];
 
+    // The C runtimes a mingw-built liblouis.dll can import free() from: msvcrt.dll for the gcc
+    // builds, ucrtbase.dll for llvm-mingw.
+    private static readonly string[] WindowsRuntimes = ["msvcrt.dll", "ucrtbase.dll"];
+
     private static string[] TablePaths() =>
         [.. Tables.Select(t => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tables", t))];
 
@@ -123,7 +127,7 @@ public unsafe class LiblouisHeapTests
         nint module = NativeLibrary.Load("liblouis", typeof(LibLouis).Assembly, DllImportSearchPath.SafeDirectories);
         nint free = LiblouisHeap.FindImport((byte*)module, "free"u8);
 
-        nint[] runtimeFrees = [.. new[] { "msvcrt.dll", "ucrtbase.dll" }
+        nint[] runtimeFrees = [.. WindowsRuntimes
             .Select(name => NativeLibrary.TryLoad(name, out nint runtime) ? NativeLibrary.GetExport(runtime, "free") : 0)];
 
         Assert.NotEqual(0, free);
