@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace LibLouis.NET;
 
@@ -12,7 +13,8 @@ public static partial class NativeMethods
     /// </summary>
     /// <returns>LibLouis version.</returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
-    [LibraryImport("liblouis", EntryPoint = "lou_version", StringMarshalling = StringMarshalling.Custom, StringMarshallingCustomType = typeof(UTF8StringNoFreeMarshaller))]
+    [LibraryImport("liblouis", EntryPoint = "lou_version")]
+    [return: MarshalUsing(typeof(UTF8StringNoFreeMarshaller))]
     internal static partial string lou_version();
 
     /// <summary>
@@ -130,13 +132,22 @@ public static partial class NativeMethods
     /// </summary>
     /// <param name="tableList">Contains a hyphenation table.</param>
     /// <param name="inbuf">length of the character string in inbuf.</param>
-    /// <param name="inlen">inlen is the length of the character string in inbuf</param>
-    /// <param name="hyphens">array of characters and must be of size inlen + 1 (to account for the NULL terminator).</param>
+    /// <param name="inlen">
+    /// The number of characters in inbuf. Unlike the translate functions, lou_hyphenate does not
+    /// stop at a NUL: it copies exactly inlen characters, so this must not count the terminator.
+    /// It must also be less than 100 (HYPHSTRING), or liblouis refuses the call.
+    /// </param>
+    /// <param name="hyphens">
+    /// Caller-allocated output buffer of at least inlen + 1 bytes. liblouis writes one ASCII
+    /// '0' / '1' / '2' per character plus a NUL terminator. It is a plain char buffer, so it must
+    /// be marshalled as a byte array - a string would pass a pointer to a pointer and liblouis
+    /// would write over the marshalling stub's own stack.
+    /// </param>
     /// <param name="mode"></param>
     /// <returns>0 if error, 1 if success.</returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_hyphenate", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial int lou_hyphenate(string tableList, byte[] inbuf, int inlen, ref string hyphens, TranslationMode mode);
+    internal static partial int lou_hyphenate(string tableList, byte[] inbuf, int inlen, byte[] hyphens, TranslationMode mode);
 
     /// <summary>
     /// This function enables you to compile a table entry on the fly at run-time. 
@@ -174,25 +185,48 @@ public static partial class NativeMethods
     [LibraryImport("liblouis", EntryPoint = "lou_registerLogCallback")]
     internal static partial void lou_registerLogCallback(LoggingCallback callback);
 
+    /// <returns>
+    /// A pointer into static storage inside liblouis, or <see langword="null"/> if the path was
+    /// never set. Must not be freed.
+    /// </returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
-    [LibraryImport("liblouis", EntryPoint = "lou_getDataPath", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial string lou_getDataPath();
+    [LibraryImport("liblouis", EntryPoint = "lou_getDataPath")]
+    [return: MarshalUsing(typeof(UTF8StringNoFreeMarshaller))]
+    internal static partial string? lou_getDataPath();
 
+    /// <returns>
+    /// A pointer into static storage inside liblouis, or <see langword="null"/> if the path was
+    /// rejected. Must not be freed.
+    /// </returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_setDataPath", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial string lou_setDataPath(string path);
+    [return: MarshalUsing(typeof(UTF8StringNoFreeMarshaller))]
+    internal static partial string? lou_setDataPath(string path);
 
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_checkTable", StringMarshalling = StringMarshalling.Utf8)]
     internal static partial int lou_checkTable(string tableList);
 
+    /// <summary>
+    /// Parses, analyzes and indexes the given tables.
+    /// </summary>
+    /// <param name="tables">
+    /// Must be NULL terminated: liblouis walks the array until it reads a null pointer, so the
+    /// final element has to be <see langword="null"/>.
+    /// </param>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_indexTables", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial void lou_indexTables(string[] tables);
+    internal static partial void lou_indexTables(string?[] tables);
 
+    /// <returns>
+    /// The best matching table name, or <see langword="null"/> when there is no match. liblouis
+    /// documents this as the caller's to free, but the memory comes from liblouis's own C runtime
+    /// - see <see cref="UTF8StringNoFreeMarshaller"/> for why we leak it instead.
+    /// </returns>
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_findTable", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial string lou_findTable(string query);
+    [return: MarshalUsing(typeof(UTF8StringNoFreeMarshaller))]
+    internal static partial string? lou_findTable(string query);
 
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     [LibraryImport("liblouis", EntryPoint = "lou_compileString", StringMarshalling = StringMarshalling.Utf8)]
