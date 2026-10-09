@@ -106,6 +106,7 @@ jobs:
         run: >
           dotnet test LibLouis.NET.Test/LibLouis.NET.Test.csproj
           --configuration Release
+          -warnaserror
           -p:RestoreAdditionalProjectSources=${{ github.workspace }}/local-feed
 
   # Managed packages. Split from native-linux because building LibLouis.NET resolves
