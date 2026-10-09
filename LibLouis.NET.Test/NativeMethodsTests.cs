@@ -27,7 +27,6 @@ public class NativeMethodsTests
             input,
             outputLength,
             modes,
-            null,
             TranslationMode.Regular);
 
         Assert.Equal("`,@this is a test.`,", resultString);
@@ -52,7 +51,6 @@ public class NativeMethodsTests
             input,
             outputLength,
             modes,
-            null,
             TranslationMode.Regular);
 
         Assert.Equal("`,@this \\is\\ a test.`,", resultString);
@@ -93,7 +91,6 @@ public class NativeMethodsTests
             input,
             outputLength,
             modes,
-            null,
             TranslationMode.Regular);
 
         Assert.Equal("\\@han sagde `,yes`,.\\", resultString);
@@ -112,7 +109,7 @@ public class NativeMethodsTests
         int[] inputPosition = new int[outputLength];
         int[] outputPosition = new int[input.Length];
 
-        TranslatedString translated = LibLouis.Instance.Translate(tables, input, outputLength, null, null, outputPosition, inputPosition, cursorPosition, TranslationMode.Regular);
+        TranslatedString translated = LibLouis.Instance.Translate(tables, input, outputLength, null, outputPosition, inputPosition, cursorPosition, TranslationMode.Regular);
 
         Assert.Equal(expected, translated.Output);
 

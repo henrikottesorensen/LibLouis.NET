@@ -318,14 +318,6 @@ public class LibLouis
     /// <param name="input">String to translate.</param>
     /// <param name="outputLength">Maximum output length.</param>
     /// <param name="formtype">The typeform parameter is used to indicate italic type, boldface type, computer braille, etc. It is an array of formtype with the same length as the input buffer pointed to by input. Each element indicates the typeform of the corresponding character in the input buffer. </param>
-    /// <param name="spacing">
-    /// The spacing information to compute, one char per char of <paramref name="input"/>, or
-    /// <see langword="null"/> to skip the computation. An ASCII digit marks a character whose
-    /// spacing should be carried into the output; liblouis ignores anything else, except that a
-    /// leading 'X' disables the computation. The answer arrives in
-    /// <see cref="TranslatedString.OutputSpacing"/> rather than in this string, which liblouis has
-    /// no way to write to.
-    /// </param>
     /// <param name="outputPosition"></param>
     /// <param name="inputPosition"></param>
     /// <param name="cursorPosition"></param>
@@ -338,7 +330,6 @@ public class LibLouis
         string input,
         int outputLength,
         TypeForm[]? formtype,
-        string? spacing,
         int[] outputPosition,
         int[] inputPosition,
         int cursorPosition,
@@ -347,11 +338,6 @@ public class LibLouis
         if (outputLength < 1)
         {
             throw new ArgumentException($"{nameof(outputLength)} must be over 0", nameof(outputLength));
-        }
-
-        if (spacing is not null && input.Length != spacing.Length)
-        {
-            throw new ArgumentException($"{nameof(spacing)} must be the same length as input or null");
         }
 
         if (inputPosition.Length < outputLength)
@@ -373,11 +359,6 @@ public class LibLouis
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
         TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
-        byte[]? spacingBuffer = PrepareSpacingBuffer(spacing, input, inputLength, outputBufferLength);
-
-        // liblouis overwrites inlen with the number of characters it consumed, so hold on to the
-        // length that went in: it bounds how much of the spacing buffer liblouis fills.
-        int spacingInputLength = inputLength;
 
         // The cursor arrives as a .NET string index and liblouis wants a widechar index. A cursor
         // at the end of the input is not passed on, but placed at the end of the output below.
@@ -390,7 +371,8 @@ public class LibLouis
         lock (NativeLock)
         {
             ThrowIfShutDown();
-            success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacingBuffer, outputPosition, inputPosition, ref widecharCursor, mode) > 0;
+            // spacing is always NULL: liblouis 3.39.0 ignores it and logs a warning when it is not.
+            success = NativeMethods.lou_translate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, null, outputPosition, inputPosition, ref widecharCursor, mode) > 0;
         }
 
         if (!success)
@@ -410,11 +392,6 @@ public class LibLouis
             InputPosition = mappedInputPosition,
             OutputPosition = mappedOutputPosition,
             OutputDots78 = ExtractOutputDots78(typeFormBuffer, outputLength),
-
-            // Forward translation copies its answer back over only the first inlen bytes of the
-            // buffer (lou_translateString.c:1384), so cells past the input's length hold no answer
-            // however long the output grew.
-            OutputSpacing = ExtractOutputSpacing(spacingBuffer, Math.Min(outputLength, spacingInputLength)),
         };
     }
 
@@ -428,26 +405,49 @@ public class LibLouis
     /// <param name="outputLength">Maximum output length.</param>
     /// <param name="formtype">The typeform parameter is used to indicate italic type, boldface type, computer braille, etc. It is an array of formtype with the same length as the input buffer pointed to by input. Each element indicates the typeform of the corresponding character in the input buffer. </param>
     /// <param name="spacing">
-    /// The spacing information to compute, one char per char of <paramref name="input"/>, or
-    /// <see langword="null"/> to skip the computation. This overload has nowhere to report the
-    /// answer, since liblouis returns it in a buffer and an immutable string cannot receive it, so
-    /// it is computed and discarded. Use the overload returning <see cref="TranslatedString"/> and
-    /// read <see cref="TranslatedString.OutputSpacing"/> if you need it.
+    /// Ignored. liblouis 3.39.0 deprecated the parameter and no longer computes spacing
+    /// information, so it is not passed on.
     /// </param>
+    /// <param name="outputPosition"></param>
+    /// <param name="inputPosition"></param>
+    /// <param name="cursorPosition"></param>
+    /// <param name="mode">The mode parameter specifies how the translation should be done. They are all powers of 2, so that a combined mode can be specified by adding up different values.</param>
+    /// <returns>Translated string</returns>
+    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="LibLouisException"></exception>
+    [Obsolete("liblouis 3.39.0 deprecated the spacing parameter and ignores it. Use the overload without spacing.")]
+    public TranslatedString Translate(
+        IEnumerable<string> tableList,
+        string input,
+        int outputLength,
+        TypeForm[]? formtype,
+        string? spacing,
+        int[] outputPosition,
+        int[] inputPosition,
+        int cursorPosition,
+        TranslationMode mode)
+    {
+        return Translate(tableList, input, outputLength, formtype, outputPosition, inputPosition, cursorPosition, mode);
+    }
+
+    /// <summary>
+    /// This function takes a string of Unicode characters in inbuf and translates it into a string of characters in outbuf. 
+    /// Each character produces a particular dot pattern in one braille cell when sent to an embosser or braille display or to a screen type font.
+    /// Which character represents which dot pattern is indicated by the character-definition and display opcodes in the translation table. 
+    /// </summary>
+    /// <param name="tableList">The tableList parameter points to a list of translation tables. See How tables are found, for a description on how the tables are located in the file system. If only one table is given, no comma should be used after it. It is these tables which control just how the translation is made, whether in Grade 2, Grade 1, or something else.</param>
+    /// <param name="input">String to translate.</param>
+    /// <param name="outputLength">Maximum output length.</param>
+    /// <param name="formtype">The typeform parameter is used to indicate italic type, boldface type, computer braille, etc. It is an array of formtype with the same length as the input buffer pointed to by input. Each element indicates the typeform of the corresponding character in the input buffer. </param>
     /// <param name="mode">The mode parameter specifies how the translation should be done. They are all powers of 2, so that a combined mode can be specified by adding up different values.</param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="LibLouisException"></exception>
-    public string Translate(IEnumerable<string> tableList, string input, int outputLength, TypeForm[]? formtype, string? spacing, TranslationMode mode)
+    public string Translate(IEnumerable<string> tableList, string input, int outputLength, TypeForm[]? formtype, TranslationMode mode)
     {
         if (outputLength < 1)
         {
             throw new ArgumentException("Output length must be over 0", nameof(outputLength));
-        }
-
-        if (spacing is not null && input.Length != spacing.Length)
-        {
-            throw new ArgumentException("Spacing must be the same length as input or null");
         }
 
         // The number of widechars to translate, excluding the NUL terminator, which is what the
@@ -459,7 +459,6 @@ public class LibLouis
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
         TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
-        byte[]? spacingBuffer = PrepareSpacingBuffer(spacing, input, inputLength, outputBufferLength);
 
         string tables = string.Join(',', tableList);
         bool success;
@@ -467,7 +466,8 @@ public class LibLouis
         lock (NativeLock)
         {
             ThrowIfShutDown();
-            success = NativeMethods.lou_translateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacingBuffer, mode) > 0;
+            // spacing is always NULL: liblouis 3.39.0 ignores it and logs a warning when it is not.
+            success = NativeMethods.lou_translateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, null, mode) > 0;
         }
 
         if (!success)
@@ -489,13 +489,28 @@ public class LibLouis
     /// <param name="outputLength">Maximum output length.</param>
     /// <param name="formtype">The typeform parameter is used to indicate italic type, boldface type, computer braille, etc. It is an array of formtype with the same length as the input buffer pointed to by input. Each element indicates the typeform of the corresponding character in the input buffer. </param>
     /// <param name="spacing">
-    /// The spacing information to compute, one char per char of <paramref name="input"/>, or
-    /// <see langword="null"/> to skip the computation. An ASCII digit marks a character whose
-    /// spacing should be carried into the output; liblouis ignores anything else, except that a
-    /// leading 'X' disables the computation. The answer arrives in
-    /// <see cref="TranslatedString.OutputSpacing"/> rather than in this string, which liblouis has
-    /// no way to write to.
+    /// Ignored. liblouis 3.39.0 deprecated the parameter and no longer computes spacing
+    /// information, so it is not passed on.
     /// </param>
+    /// <param name="mode">The mode parameter specifies how the translation should be done. They are all powers of 2, so that a combined mode can be specified by adding up different values.</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="LibLouisException"></exception>
+    [Obsolete("liblouis 3.39.0 deprecated the spacing parameter and ignores it. Use the overload without spacing.")]
+    public string Translate(IEnumerable<string> tableList, string input, int outputLength, TypeForm[]? formtype, string? spacing, TranslationMode mode)
+    {
+        return Translate(tableList, input, outputLength, formtype, mode);
+    }
+
+    /// <summary>
+    /// This function takes a string of Unicode characters in inbuf and translates it into a string of characters in outbuf. 
+    /// Each character produces a particular dot pattern in one braille cell when sent to an embosser or braille display or to a screen type font.
+    /// Which character represents which dot pattern is indicated by the character-definition and display opcodes in the translation table. 
+    /// </summary>
+    /// <param name="tableList">The tableList parameter points to a list of translation tables. See How tables are found, for a description on how the tables are located in the file system. If only one table is given, no comma should be used after it. It is these tables which control just how the translation is made, whether in Grade 2, Grade 1, or something else.</param>
+    /// <param name="input">String to translate.</param>
+    /// <param name="outputLength">Maximum output length.</param>
+    /// <param name="formtype">The typeform parameter is used to indicate italic type, boldface type, computer braille, etc. It is an array of formtype with the same length as the input buffer pointed to by input. Each element indicates the typeform of the corresponding character in the input buffer. </param>
     /// <param name="outputPosition"></param>
     /// <param name="inputPosition"></param>
     /// <param name="cursorPosition"></param>
@@ -508,7 +523,6 @@ public class LibLouis
         string input,
         int outputLength,
         TypeForm[]? formtype,
-        string? spacing,
         int[] outputPosition,
         int[] inputPosition,
         int cursorPosition,
@@ -517,11 +531,6 @@ public class LibLouis
         if (outputLength < 1)
         {
             throw new ArgumentException($"{nameof(outputLength)} must be over 0", nameof(outputLength));
-        }
-
-        if (spacing is not null && input.Length != spacing.Length)
-        {
-            throw new ArgumentException($"{nameof(spacing)} must be the same length as input or null");
         }
 
         if (inputPosition.Length < outputLength)
@@ -543,7 +552,6 @@ public class LibLouis
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
         TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
-        byte[]? spacingBuffer = PrepareSpacingBuffer(spacing, input, inputLength, outputBufferLength);
 
         // The cursor arrives as a .NET string index and liblouis wants a widechar index. A cursor
         // at the end of the input is not passed on, but placed at the end of the output below.
@@ -556,7 +564,8 @@ public class LibLouis
         lock (NativeLock)
         {
             ThrowIfShutDown();
-            success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacingBuffer, outputPosition, inputPosition, ref widecharCursor, mode) > 0;
+            // spacing is always NULL: liblouis 3.39.0 ignores it and logs a warning when it is not.
+            success = NativeMethods.lou_backTranslate(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, null, outputPosition, inputPosition, ref widecharCursor, mode) > 0;
         }
 
         if (!success)
@@ -575,12 +584,42 @@ public class LibLouis
             CursorPosition = IsCursorAtEnd(input, cursorPosition) ? output.Length : mappedCursor,
             InputPosition = mappedInputPosition,
             OutputPosition = mappedOutputPosition,
-
-            // Back-translation writes straight into the caller's buffer, one entry per output cell
-            // across the whole output, so unlike the forward direction it is not clipped to the
-            // input's length.
-            OutputSpacing = ExtractOutputSpacing(spacingBuffer, outputLength),
         };
+    }
+
+    /// <summary>
+    /// This function takes a string of Unicode characters in inbuf and translates it into a string of characters in outbuf. 
+    /// Each character produces a particular dot pattern in one braille cell when sent to an embosser or braille display or to a screen type font.
+    /// Which character represents which dot pattern is indicated by the character-definition and display opcodes in the translation table. 
+    /// </summary>
+    /// <param name="tableList">The tableList parameter points to a list of translation tables. See How tables are found, for a description on how the tables are located in the file system. If only one table is given, no comma should be used after it. It is these tables which control just how the translation is made, whether in Grade 2, Grade 1, or something else.</param>
+    /// <param name="input">String to translate.</param>
+    /// <param name="outputLength">Maximum output length.</param>
+    /// <param name="formtype">The typeform parameter is used to indicate italic type, boldface type, computer braille, etc. It is an array of formtype with the same length as the input buffer pointed to by input. Each element indicates the typeform of the corresponding character in the input buffer. </param>
+    /// <param name="spacing">
+    /// Ignored. liblouis 3.39.0 deprecated the parameter and no longer computes spacing
+    /// information, so it is not passed on.
+    /// </param>
+    /// <param name="outputPosition"></param>
+    /// <param name="inputPosition"></param>
+    /// <param name="cursorPosition"></param>
+    /// <param name="mode">The mode parameter specifies how the translation should be done. They are all powers of 2, so that a combined mode can be specified by adding up different values.</param>
+    /// <returns>Translated string</returns>
+    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="LibLouisException"></exception>
+    [Obsolete("liblouis 3.39.0 deprecated the spacing parameter and ignores it. Use the overload without spacing.")]
+    public TranslatedString BackTranslate(
+        IEnumerable<string> tableList,
+        string input,
+        int outputLength,
+        TypeForm[]? formtype,
+        string? spacing,
+        int[] outputPosition,
+        int[] inputPosition,
+        int cursorPosition,
+        TranslationMode mode)
+    {
+        return BackTranslate(tableList, input, outputLength, formtype, outputPosition, inputPosition, cursorPosition, mode);
     }
 
     /// <summary>
@@ -590,27 +629,15 @@ public class LibLouis
     /// <param name="input">String to translate.</param>
     /// <param name="outputLength">Maximum output length.</param>
     /// <param name="formtype">The typeform parameter is used to indicate italic type, boldface type, computer braille, etc. It is an array of formtype with the same length as the input buffer pointed to by input. Each element indicates the typeform of the corresponding character in the input buffer. </param>
-    /// <param name="spacing">
-    /// The spacing information to compute, one char per char of <paramref name="input"/>, or
-    /// <see langword="null"/> to skip the computation. This overload has nowhere to report the
-    /// answer, since liblouis returns it in a buffer and an immutable string cannot receive it, so
-    /// it is computed and discarded. Use the overload returning <see cref="TranslatedString"/> and
-    /// read <see cref="TranslatedString.OutputSpacing"/> if you need it.
-    /// </param>
     /// <param name="mode">The mode parameter specifies how the translation should be done. They are all powers of 2, so that a combined mode can be specified by adding up different values.</param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="LibLouisException"></exception>
-    public string BackTranslate(IEnumerable<string> tableList, string input, int outputLength, TypeForm[]? formtype, string? spacing, TranslationMode mode)
+    public string BackTranslate(IEnumerable<string> tableList, string input, int outputLength, TypeForm[]? formtype, TranslationMode mode)
     {
         if (outputLength < 1)
         {
             throw new ArgumentException("Output length must be over 0", nameof(outputLength));
-        }
-
-        if (spacing is not null && input.Length != spacing.Length)
-        {
-            throw new ArgumentException("Spacing must be the same length as input or null");
         }
 
         // The number of widechars to translate, excluding the NUL terminator, which is what the
@@ -622,7 +649,6 @@ public class LibLouis
         byte[] inputBuffer = PrepareUCSInputBuffer(input);
         byte[] outputBuffer = PrepareUCSOutputBuffer(outputBufferLength);
         TypeForm[]? typeFormBuffer = PrepareTypeFormBuffer(formtype, inputLength, outputBufferLength);
-        byte[]? spacingBuffer = PrepareSpacingBuffer(spacing, input, inputLength, outputBufferLength);
 
         string tables = string.Join(',', tableList);
         bool success;
@@ -630,7 +656,8 @@ public class LibLouis
         lock (NativeLock)
         {
             ThrowIfShutDown();
-            success = NativeMethods.lou_backTranslateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, spacingBuffer, mode) > 0;
+            // spacing is always NULL: liblouis 3.39.0 ignores it and logs a warning when it is not.
+            success = NativeMethods.lou_backTranslateString(tables, inputBuffer, ref inputLength, outputBuffer, ref outputLength, typeFormBuffer, null, mode) > 0;
         }
 
         if (!success)
@@ -639,6 +666,27 @@ public class LibLouis
         }
 
         return ConvertUCSOutputBufferToString(outputBuffer, outputLength);
+    }
+
+    /// <summary>
+    /// This is exactly the opposite of Translate. input is a string of Unicode characters representing braille. Return value will contain a string of Unicode characters.
+    /// </summary>
+    /// <param name="tableList">The tableList parameter points to a list of translation tables. See How tables are found, for a description on how the tables are located in the file system. If only one table is given, no comma should be used after it. It is these tables which control just how the translation is made, whether in Grade 2, Grade 1, or something else.</param>
+    /// <param name="input">String to translate.</param>
+    /// <param name="outputLength">Maximum output length.</param>
+    /// <param name="formtype">The typeform parameter is used to indicate italic type, boldface type, computer braille, etc. It is an array of formtype with the same length as the input buffer pointed to by input. Each element indicates the typeform of the corresponding character in the input buffer. </param>
+    /// <param name="spacing">
+    /// Ignored. liblouis 3.39.0 deprecated the parameter and no longer computes spacing
+    /// information, so it is not passed on.
+    /// </param>
+    /// <param name="mode">The mode parameter specifies how the translation should be done. They are all powers of 2, so that a combined mode can be specified by adding up different values.</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="LibLouisException"></exception>
+    [Obsolete("liblouis 3.39.0 deprecated the spacing parameter and ignores it. Use the overload without spacing.")]
+    public string BackTranslate(IEnumerable<string> tableList, string input, int outputLength, TypeForm[]? formtype, string? spacing, TranslationMode mode)
+    {
+        return BackTranslate(tableList, input, outputLength, formtype, mode);
     }
 
     /// <summary>
@@ -759,77 +807,6 @@ public class LibLouis
     /// where a caller appending text puts it.
     /// </summary>
     private static bool IsCursorAtEnd(string input, int cursorPosition) => cursorPosition >= input.Length;
-
-    /// <summary>
-    /// Copy the caller's spacing request into a buffer that is safe to hand to liblouis.
-    /// </summary>
-    /// <remarks>
-    /// The spacing parameter is in/out - liblouis writes its answer back over the same buffer it
-    /// read the request from - but it used to be declared as a string. That meant the answer landed
-    /// in the marshaller's temporary, which is freed after the call and could never be copied back
-    /// into an immutable string, so no caller could ever receive spacing information. The trailing
-    /// NUL liblouis appends at <c>spacing[inlen]</c> (lou_translateString.c:1385) also fell one byte
-    /// past that temporary.
-    /// <para>
-    /// Sizing is <c>max(inputLength, outputLength) + 1</c>, not the "at least inlen elements" the
-    /// header promises, because the two directions disagree: forward translation writes
-    /// <c>inlen + 1</c> bytes, while back-translation opens with
-    /// <c>memset(spacing, '*', outlen)</c> (lou_backTranslateString.c:229) and then writes per
-    /// output cell. An inlen-sized buffer is a heap overrun in the back-translation direction
-    /// whenever the output is longer than the input.
-    /// </para>
-    /// <para>
-    /// It is a <c>char</c> buffer rather than widechar, and liblouis indexes it in widechars, so the
-    /// caller's one-entry-per-char string is collapsed to one entry per character on the way in.
-    /// Only ASCII digits mean anything to liblouis; everything else is ignored, except that a first
-    /// byte of 'X' disables the computation outright (lou_translateString.c:1203).
-    /// </para>
-    /// </remarks>
-    private byte[]? PrepareSpacingBuffer(string? spacing, string input, int inputLength, int outputLength)
-    {
-        if (spacing is null)
-        {
-            return null;
-        }
-
-        byte[] buffer = new byte[Math.Max(inputLength, outputLength) + 1];
-        int[] offsets = Utf16OffsetOfWidechar(input);
-
-        for (int k = 0; k < inputLength; k++)
-        {
-            char c = spacing[offsets[k]];
-            buffer[k] = c < 0x80 ? (byte)c : (byte)'*';
-        }
-
-        return buffer;
-    }
-
-    /// <summary>
-    /// Reads the spacing information liblouis wrote back into the scratch spacing buffer.
-    /// </summary>
-    /// <remarks>
-    /// The write-back half of <see cref="PrepareSpacingBuffer"/>. Values are indexed by *output*
-    /// cell in both directions: '*' where liblouis reported nothing for a cell, an ASCII digit
-    /// carried over from the input character that produced it, or '1' where back-translation
-    /// inserted a space. <paramref name="count"/> differs by direction and is the caller's to
-    /// decide - see the call sites.
-    /// </remarks>
-    private static string? ExtractOutputSpacing(byte[]? spacingBuffer, int count)
-    {
-        if (spacingBuffer is null)
-        {
-            return null;
-        }
-
-        // A request whose first byte is 'X' tells forward translation to skip the computation, so
-        // the buffer still holds the request and there is no answer to report.
-        if (spacingBuffer[0] == (byte)'X')
-        {
-            return null;
-        }
-
-        return Encoding.ASCII.GetString(spacingBuffer, 0, Math.Clamp(count, 0, spacingBuffer.Length - 1));
-    }
 
     /// <summary>
     /// Converts a cursor given as a .NET string index into the widechar index liblouis expects.
